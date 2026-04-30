@@ -114,6 +114,36 @@
       stroke-width: 3px;
     }
 
+    /* Landmark label (Central Park, future park / airport / waterway labels).
+       Smaller and quieter than borough labels — orientation hint, not header. */
+    .landmark-label {
+      fill: rgba(180, 220, 230, 0.55);
+      font-family: var(--serif);
+      font-size: 9px;
+      font-style: italic;
+      letter-spacing: 0.05em;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+      paint-order: stroke;
+      stroke: rgba(0, 0, 0, 0.55);
+      stroke-width: 2.5px;
+    }
+    .landmark-shape {
+      fill: rgba(80, 130, 95, 0.22);
+      stroke: rgba(140, 200, 150, 0.40);
+      stroke-width: 0.6;
+      pointer-events: none;
+    }
+    .landmark-shape.cemetery {
+      fill: rgba(110, 100, 130, 0.22);
+      stroke: rgba(170, 160, 190, 0.40);
+    }
+    .landmark-shape.airport {
+      fill: rgba(120, 130, 145, 0.22);
+      stroke: rgba(170, 180, 200, 0.40);
+    }
+
     /* ---------- header ---------- */
 
     header {
@@ -612,8 +642,10 @@
       </defs>
       <g id="atlas-regional"></g>
       <g id="atlas-land"></g>
+      <g id="atlas-landmarks"></g>
       <g id="atlas-boroughs"></g>
       <g id="atlas-features"></g>
+      <g id="atlas-landmark-labels"></g>
       <g id="atlas-borough-labels"></g>
     </svg>
     <div class="zoom-controls">
@@ -1000,6 +1032,8 @@ walk with me.</div>
       const svg = document.getElementById("atlas");
       const regionalGroup = document.getElementById("atlas-regional");
       const landGroup = document.getElementById("atlas-land");
+      const landmarksGroup = document.getElementById("atlas-landmarks");
+      const landmarkLabelsGroup = document.getElementById("atlas-landmark-labels");
       const boroughsGroup = document.getElementById("atlas-boroughs");
       const featuresGroup = document.getElementById("atlas-features");
       const labelGroup = document.getElementById("atlas-borough-labels");
@@ -1009,9 +1043,12 @@ walk with me.</div>
       const byId = new Map();
       // borough -> path-element (outline)
       const boroughPaths = new Map();
+      // borough -> path-element (filled land polygon, per-borough so rivers between them show)
+      const landPaths = new Map();
       // borough -> text-element (label)
       const boroughLabels = new Map();
-      let landPath = null;
+      // landmarks: array of {label, centroid:[lng,lat], shape: path-element, text: text-element}
+      const landmarkRefs = [];
       let regionalPath = null;
 
       let featuresList = [];
@@ -1040,16 +1077,49 @@ walk with me.</div>
           regionalGroup.appendChild(regionalPath);
         }
 
-        // Land layer (NYC outline filled with land color)
+        // Land layer — render each borough separately as a filled polygon.
+        // Inter-borough rivers (East River, Newtown Creek between Greenpoint
+        // and LIC, Harlem River, The Narrows, etc.) appear as the water-tinted
+        // background showing through the gaps. A unioned NYC outline would
+        // bridge those gaps.
         while (landGroup.firstChild) landGroup.removeChild(landGroup.firstChild);
-        if (OUTLINES?.nyc) {
-          landPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-          landPath.setAttribute("d", atlasGeo.geometryToPath(OUTLINES.nyc));
-          landPath.setAttribute("class", "land");
-          landGroup.appendChild(landPath);
+        landPaths.clear();
+        if (OUTLINES?.boroughs) {
+          for (const [b, geom] of Object.entries(OUTLINES.boroughs)) {
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", atlasGeo.geometryToPath(geom));
+            path.setAttribute("class", "land");
+            path.setAttribute("data-borough", b);
+            landGroup.appendChild(path);
+            landPaths.set(b, path);
+          }
         }
 
-        // Borough boundaries
+        // Landmark shapes (Central Park polygon, etc.) sit just above land.
+        while (landmarksGroup.firstChild) landmarksGroup.removeChild(landmarksGroup.firstChild);
+        while (landmarkLabelsGroup.firstChild) landmarkLabelsGroup.removeChild(landmarkLabelsGroup.firstChild);
+        landmarkRefs.length = 0;
+        if (OUTLINES?.landmarks) {
+          for (const lm of OUTLINES.landmarks) {
+            const shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            shape.setAttribute("d", atlasGeo.geometryToPath(lm.geometry));
+            const type = lm.type || "park";
+            shape.setAttribute("class", `landmark-shape ${type}`);
+            landmarksGroup.appendChild(shape);
+
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            const [px, py] = atlasGeo.project(lm.centroid[0], lm.centroid[1]);
+            text.setAttribute("x", px.toFixed(1));
+            text.setAttribute("y", py.toFixed(1));
+            text.setAttribute("class", "landmark-label");
+            text.textContent = lm.label;
+            landmarkLabelsGroup.appendChild(text);
+
+            landmarkRefs.push({ ...lm, shape, text });
+          }
+        }
+
+        // Borough boundaries (dashed lines, per-borough)
         while (boroughsGroup.firstChild) boroughsGroup.removeChild(boroughsGroup.firstChild);
         boroughPaths.clear();
         if (OUTLINES?.boroughs) {
@@ -1107,14 +1177,19 @@ walk with me.</div>
         if (regionalPath && OUTLINES?.regional) {
           regionalPath.setAttribute("d", atlasGeo.geometryToPath(OUTLINES.regional));
         }
-        if (landPath && OUTLINES?.nyc) {
-          landPath.setAttribute("d", atlasGeo.geometryToPath(OUTLINES.nyc));
-        }
         if (OUTLINES?.boroughs) {
           for (const [b, geom] of Object.entries(OUTLINES.boroughs)) {
-            const p = boroughPaths.get(b);
-            if (p) p.setAttribute("d", atlasGeo.geometryToPath(geom));
+            const lp = landPaths.get(b);
+            if (lp) lp.setAttribute("d", atlasGeo.geometryToPath(geom));
+            const bp = boroughPaths.get(b);
+            if (bp) bp.setAttribute("d", atlasGeo.geometryToPath(geom));
           }
+        }
+        for (const lm of landmarkRefs) {
+          lm.shape.setAttribute("d", atlasGeo.geometryToPath(lm.geometry));
+          const [px, py] = atlasGeo.project(lm.centroid[0], lm.centroid[1]);
+          lm.text.setAttribute("x", px.toFixed(1));
+          lm.text.setAttribute("y", py.toFixed(1));
         }
         for (const [id, entry] of byId) {
           entry.element.setAttribute("d", atlasGeo.geometryToPath(entry.feature.geometry));

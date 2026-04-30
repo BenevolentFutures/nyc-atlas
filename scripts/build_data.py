@@ -277,6 +277,42 @@ def load_match_module() -> str:
     return src.strip()
 
 
+def compute_landmarks(raw_features: list[dict], edits: dict) -> list[dict]:
+    """Extract centroids + simplified outlines for landmark features named
+    in edits.json. Used as orientation labels (Central Park, etc.) without
+    polluting the quiz pool."""
+    landmark_specs = edits.get("landmarks", [])
+    if not landmark_specs:
+        return []
+    out = []
+    for spec in landmark_specs:
+        match = next(
+            (f for f in raw_features
+             if f["properties"]["borough"] == spec["borough"]
+             and f["properties"]["neighborhood"] == spec["neighborhood"]),
+            None,
+        )
+        if not match:
+            print(f"  WARN: landmark not found in raw data: {spec}")
+            continue
+        try:
+            geom = shape(match["geometry"])
+            if not geom.is_valid:
+                geom = make_valid(geom)
+            rep = geom.representative_point()
+            simplified = geom.simplify(SIMPLIFY_TOLERANCE * 2, preserve_topology=True)
+            out.append({
+                "label": spec.get("label", spec["neighborhood"]),
+                "type": spec.get("type", "park"),
+                "centroid": [round(rep.x, COORDINATE_PRECISION), round(rep.y, COORDINATE_PRECISION)],
+                "geometry": round_coords(mapping(simplified), COORDINATE_PRECISION),
+            })
+        except Exception as e:
+            print(f"  WARN: landmark {spec['neighborhood']} failed: {e}")
+    print(f"  landmarks: {len(out)} ({', '.join(l['label'] for l in out)})")
+    return out
+
+
 def compute_regional_land(nyc_outline_geom) -> dict | None:
     """Clip Natural Earth 10m land polygons to the NYC metro bbox and
     subtract the NYC outline so the regional layer reads as the surrounding
@@ -389,6 +425,13 @@ def compute_outlines(features: list[dict]) -> dict:
     }
 
 
+def compute_outlines_v2(features: list[dict], raw_features: list[dict], edits: dict) -> dict:
+    """Wrapper that adds landmark data to the outlines payload."""
+    out = compute_outlines(features)
+    out["landmarks"] = compute_landmarks(raw_features, edits)
+    return out
+
+
 def inject_template(template_text: str, replacements: dict[str, str]) -> str:
     """Replace marker comments with embedded JS literals.
 
@@ -457,7 +500,7 @@ def main() -> None:
     print()
 
     print("compute orientation outlines:")
-    outlines = compute_outlines(curated)
+    outlines = compute_outlines_v2(curated, raw["features"], edits)
     print()
 
     # Strip noisy keys we don't need at runtime

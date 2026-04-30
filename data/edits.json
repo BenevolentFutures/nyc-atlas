@@ -41,5 +41,27 @@
     {"borough": "Queens", "neighborhood": "Howard Beach", "strategy": "keep_largest"},
     {"borough": "Bronx", "neighborhood": "City Island", "strategy": "keep_largest"}
   ],
-  "rename": []
+  "rename": [],
+  "_landmarks_comment": "Features excluded from the quiz pool but re-added as faded orientation polygons on the map. Fills the 'dead zones' (parks, cemeteries, airports) so users don't wonder what the unlabeled gaps are.",
+  "landmarks": [
+    {"borough": "Manhattan", "neighborhood": "Central Park", "label": "Central Park", "type": "park"},
+    {"borough": "Brooklyn", "neighborhood": "Prospect Park", "label": "Prospect Park", "type": "park"},
+    {"borough": "Brooklyn", "neighborhood": "Green-Wood Cemetery", "label": "Green-Wood", "type": "cemetery"},
+    {"borough": "Brooklyn", "neighborhood": "Floyd Bennett Field", "label": "Floyd Bennett", "type": "park"},
+    {"borough": "Queens", "neighborhood": "Forest Park", "label": "Forest Park", "type": "park"},
+    {"borough": "Queens", "neighborhood": "Flushing Meadows Corona Park", "label": "Flushing Meadows", "type": "park"},
+    {"borough": "Queens", "neighborhood": "Cunningham Park", "label": "Cunningham", "type": "park"},
+    {"borough": "Queens", "neighborhood": "Alley Pond Park", "label": "Alley Pond", "type": "park"},
+    {"borough": "Queens", "neighborhood": "John F. Kennedy International Airport", "label": "JFK", "type": "airport"},
+    {"borough": "Queens", "neighborhood": "LaGuardia Airport", "label": "LaGuardia", "type": "airport"},
+    {"borough": "Bronx", "neighborhood": "Pelham Bay Park", "label": "Pelham Bay Park", "type": "park"},
+    {"borough": "Bronx", "neighborhood": "Van Cortlandt Park", "label": "Van Cortlandt", "type": "park"},
+    {"borough": "Bronx", "neighborhood": "Bronx Park", "label": "Bronx Park", "type": "park"},
+    {"borough": "Bronx", "neighborhood": "Crotona Park", "label": "Crotona Park", "type": "park"},
+    {"borough": "Bronx", "neighborhood": "Ferry Point Park", "label": "Ferry Point", "type": "park"},
+    {"borough": "Bronx", "neighborhood": "Morris Park", "label": "Morris Park", "type": "park"},
+    {"borough": "Staten Island", "neighborhood": "Freshkills Park", "label": "Freshkills", "type": "park"},
+    {"borough": "Staten Island", "neighborhood": "Latourette Park", "label": "Latourette", "type": "park"},
+    {"borough": "Staten Island", "neighborhood": "Great Kills Park", "label": "Great Kills", "type": "park"}
+  ]
 }
