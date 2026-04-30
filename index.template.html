@@ -598,8 +598,11 @@
         <span id="quiz-summary-text">manhattan + brooklyn</span>
       </button>
     </div>
+    <!-- click-to-hide retired in v3 — Mode D is pure exploration. The hidden
+         infrastructure stays in place for a possible future "filter view" but
+         is not user-reachable. -->
     <div class="control-group" id="hidden-group" hidden>
-      <button class="ctrl-btn restore-btn" id="restore-hidden" title="restore hidden neighborhoods">
+      <button class="ctrl-btn restore-btn" id="restore-hidden" hidden>
         <span id="hidden-count">0</span> hidden · restore
       </button>
     </div>
@@ -2000,14 +2003,12 @@ walk with me.</div>
 
         atlasRender.bindClick((entry, e) => {
           if (mode === "D") {
-            // Toggle visibility AND surface a flavor card with name + status.
-            // Click again to restore — the territory appears and disappears.
-            toggleHidden(entry.feature.properties.id);
-            const isHidden = hiddenIds.has(entry.feature.properties.id);
+            // Pure exploration: click reveals a flavor card with name +
+            // borough + mastery state. No mutation of map state — that's
+            // reserved for the quiz modes.
             const m = atlasMastery.counts()[entry.feature.properties.id] || 0;
             const status = m >= atlasMastery.THRESHOLD ? `<span class="mastered">known</span>` : `seen ${m} / ${atlasMastery.THRESHOLD}`;
-            const action = isHidden ? '<span style="color: var(--text-whisper);">· hidden · click again to restore</span>' : "";
-            elFooter.innerHTML = `<div class="flavor-card"><div class="name">${entry.feature.properties.neighborhood}</div><div class="meta">${entry.feature.properties.borough} · ${status} ${action}</div></div>`;
+            elFooter.innerHTML = `<div class="flavor-card"><div class="name">${entry.feature.properties.neighborhood}</div><div class="meta">${entry.feature.properties.borough} · ${status}</div></div>`;
           } else if (mode === "C") {
             onClickFeatureForModeC(entry);
           }
@@ -2041,8 +2042,11 @@ walk with me.</div>
           atlasRender.rebuildPathsOnly();
         }
 
-        // Restore hidden neighborhoods
-        hiddenIds = new Set(atlasStorage.getHidden() || []);
+        // Free mode is pure exploration — no click-to-hide. Clear any
+        // legacy hidden state from earlier builds so nothing stays
+        // accidentally invisible.
+        hiddenIds = new Set();
+        atlasStorage.setHidden([]);
 
         bindControls();
         bindMap();
