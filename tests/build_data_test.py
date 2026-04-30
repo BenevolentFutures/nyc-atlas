@@ -71,12 +71,13 @@ def test_build_runs_clean():
     _run_build()
 
 
-def test_curated_has_only_manhattan_brooklyn():
+def test_curated_includes_all_five_boroughs():
     if not CURATED.exists():
         _run_build()
     fc = _load_curated()
     boroughs = {f["properties"]["borough"] for f in fc["features"]}
-    assert boroughs == {"Manhattan", "Brooklyn"}, f"unexpected boroughs: {boroughs}"
+    expected = {"Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"}
+    assert boroughs == expected, f"unexpected boroughs: {boroughs}"
 
 
 def test_curated_excludes_park_only_features():

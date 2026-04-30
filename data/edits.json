@@ -1,16 +1,45 @@
 {
   "_comment": "Curation overlay applied after Pediacities filter. Each entry rewrites the curated GeoJSON. Used to drop park-only features, deduplicate small island/marsh repeats, and any future renames/merges.",
   "exclude": [
-    {"borough": "Brooklyn", "neighborhood": "Jamaica Bay", "reason": "14 repeated marsh/water features, not a teachable neighborhood"},
-    {"borough": "Brooklyn", "neighborhood": "Bergen Beach", "reason": "mostly water in Pediacities boundary, not quiz-worthy"},
-    {"borough": "Brooklyn", "neighborhood": "Plum Beach", "reason": "tiny outlying beach, not a recognizable neighborhood"},
+    {"borough": "Manhattan", "neighborhood": "Central Park", "reason": "park, not a neighborhood"},
+
+    {"borough": "Brooklyn", "neighborhood": "Jamaica Bay", "reason": "14 repeated marsh/water features"},
+    {"borough": "Brooklyn", "neighborhood": "Bergen Beach", "reason": "mostly water in Pediacities boundary"},
+    {"borough": "Brooklyn", "neighborhood": "Plum Beach", "reason": "tiny outlying beach"},
     {"borough": "Brooklyn", "neighborhood": "Floyd Bennett Field", "reason": "former airfield, park-only"},
-    {"borough": "Brooklyn", "neighborhood": "Green-Wood Cemetery", "reason": "cemetery, not a residential neighborhood"},
+    {"borough": "Brooklyn", "neighborhood": "Green-Wood Cemetery", "reason": "cemetery, not a neighborhood"},
     {"borough": "Brooklyn", "neighborhood": "Prospect Park", "reason": "park, not a neighborhood"},
-    {"borough": "Manhattan", "neighborhood": "Central Park", "reason": "park, not a neighborhood"}
+
+    {"borough": "Queens", "neighborhood": "Alley Pond Park", "reason": "park"},
+    {"borough": "Queens", "neighborhood": "Cunningham Park", "reason": "park"},
+    {"borough": "Queens", "neighborhood": "Forest Park", "reason": "park"},
+    {"borough": "Queens", "neighborhood": "Flushing Meadows Corona Park", "reason": "park"},
+    {"borough": "Queens", "neighborhood": "John F. Kennedy International Airport", "reason": "airport"},
+    {"borough": "Queens", "neighborhood": "LaGuardia Airport", "reason": "airport"},
+    {"borough": "Queens", "neighborhood": "Jamaica Bay", "reason": "marsh/water duplicates"},
+
+    {"borough": "Bronx", "neighborhood": "Bronx Park", "reason": "park"},
+    {"borough": "Bronx", "neighborhood": "Crotona Park", "reason": "park"},
+    {"borough": "Bronx", "neighborhood": "Ferry Point Park", "reason": "park"},
+    {"borough": "Bronx", "neighborhood": "Morris Park", "reason": "park"},
+    {"borough": "Bronx", "neighborhood": "Van Cortlandt Park", "reason": "park"},
+    {"borough": "Bronx", "neighborhood": "Pelham Bay Park", "reason": "park (neighborhood Pelham Bay kept)"},
+    {"borough": "Bronx", "neighborhood": "Hart Island", "reason": "obscure island, prison/cemetery"},
+    {"borough": "Bronx", "neighborhood": "North Brother Island", "reason": "uninhabited island"},
+    {"borough": "Bronx", "neighborhood": "South Brother Island", "reason": "uninhabited island"},
+    {"borough": "Bronx", "neighborhood": "Rikers Island", "reason": "jail island, not a neighborhood"},
+    {"borough": "Bronx", "neighborhood": "Pelham Islands", "reason": "12 repeated tiny island features"},
+
+    {"borough": "Staten Island", "neighborhood": "Hoffman Island", "reason": "uninhabited island"},
+    {"borough": "Staten Island", "neighborhood": "Latourette Park", "reason": "park"},
+    {"borough": "Staten Island", "neighborhood": "Freshkills Park", "reason": "park (former landfill)"},
+    {"borough": "Staten Island", "neighborhood": "Great Kills Park", "reason": "park"}
   ],
   "merge_duplicates": [
-    {"borough": "Brooklyn", "neighborhood": "Marine Park", "strategy": "keep_largest", "reason": "appears 3x in Pediacities; keep the largest polygon (the Brooklyn neighborhood proper, not the park slivers)"}
+    {"borough": "Brooklyn", "neighborhood": "Marine Park", "strategy": "keep_largest", "reason": "appears 3x; keep the neighborhood proper, drop park slivers"},
+    {"borough": "Queens", "neighborhood": "Bayswater", "strategy": "keep_largest"},
+    {"borough": "Queens", "neighborhood": "Howard Beach", "strategy": "keep_largest"},
+    {"borough": "Bronx", "neighborhood": "City Island", "strategy": "keep_largest"}
   ],
   "rename": []
 }

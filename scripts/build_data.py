@@ -37,8 +37,9 @@ OUTPUT_PATH = PROJECT_DIR / "index.html"
 
 # ----- config ----------------------------------------------------------------
 
-INCLUDE_BOROUGHS = {"Manhattan", "Brooklyn"}
-SIMPLIFY_TOLERANCE = 0.0001  # ~11m at NYC latitudes
+INCLUDE_BOROUGHS = {"Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"}
+SIMPLIFY_TOLERANCE = 0.0002  # ~22m at NYC latitudes (relaxed from 0.0001 to keep all-5 file size sane)
+OUTLINE_SIMPLIFY_TOLERANCE = 0.0003
 ADJACENCY_BUFFER = 0.0008    # ~90m, captures water-separated pairs (Brooklyn Hts <-> FiDi)
 COORDINATE_PRECISION = 5     # decimal places after simplification
 
@@ -268,6 +269,58 @@ def load_match_module() -> str:
     return src.strip()
 
 
+def compute_outlines(features: list[dict]) -> dict:
+    """Compute borough-union and NYC-union outlines for orientation layers.
+
+    Returns a dict with `boroughs: {borough_name: GeoJSON geometry}` and
+    `nyc: GeoJSON geometry` — both simplified for compact embedding.
+    """
+    by_borough: dict[str, list] = {}
+    for f in features:
+        b = f["properties"]["borough"]
+        try:
+            geom = shape(f["geometry"])
+            if not geom.is_valid:
+                geom = make_valid(geom)
+            by_borough.setdefault(b, []).append(geom)
+        except Exception:
+            continue
+
+    borough_outlines = {}
+    borough_label_points = {}
+    all_geoms = []
+    for b, geoms in by_borough.items():
+        try:
+            unioned = unary_union(geoms)
+            simplified = unioned.simplify(OUTLINE_SIMPLIFY_TOLERANCE, preserve_topology=True)
+            if simplified.is_empty or not simplified.is_valid:
+                continue
+            borough_outlines[b] = round_coords(mapping(simplified), COORDINATE_PRECISION)
+            # Use representative_point() — guaranteed to be inside the polygon
+            # (centroid of disconnected boroughs like SI lands in water otherwise).
+            try:
+                rep = simplified.representative_point()
+                borough_label_points[b] = [round(rep.x, COORDINATE_PRECISION), round(rep.y, COORDINATE_PRECISION)]
+            except Exception:
+                c = simplified.centroid
+                borough_label_points[b] = [round(c.x, COORDINATE_PRECISION), round(c.y, COORDINATE_PRECISION)]
+            all_geoms.append(unioned)
+        except Exception as e:
+            print(f"  WARN: outline for {b} failed: {e}")
+
+    nyc_outline = None
+    if all_geoms:
+        try:
+            unioned_all = unary_union(all_geoms)
+            simplified_all = unioned_all.simplify(OUTLINE_SIMPLIFY_TOLERANCE * 1.5, preserve_topology=True)
+            nyc_outline = round_coords(mapping(simplified_all), COORDINATE_PRECISION)
+        except Exception as e:
+            print(f"  WARN: NYC outline failed: {e}")
+
+    print(f"  outlines computed: {len(borough_outlines)} boroughs + {'NYC' if nyc_outline else 'no NYC'}")
+    return {"boroughs": borough_outlines, "labels": borough_label_points, "nyc": nyc_outline}
+
+
 def inject_template(template_text: str, replacements: dict[str, str]) -> str:
     """Replace marker comments with embedded JS literals.
 
@@ -335,6 +388,10 @@ def main() -> None:
     curated = compute_adjacency(curated)
     print()
 
+    print("compute orientation outlines:")
+    outlines = compute_outlines(curated)
+    print()
+
     # Strip noisy keys we don't need at runtime
     keep_keys = {"id", "neighborhood", "borough", "centroid", "bbox", "neighbors"}
     for feat in curated:
@@ -380,6 +437,7 @@ def main() -> None:
             "NEIGHBORHOODS": json.dumps(curated_collection, separators=(",", ":")),
             "ALIASES": json.dumps(aliases, separators=(",", ":")),
             "META": json.dumps(meta, separators=(",", ":")),
+            "OUTLINES": json.dumps(outlines, separators=(",", ":")),
             "MATCH_MODULE": match_module,
         },
     )

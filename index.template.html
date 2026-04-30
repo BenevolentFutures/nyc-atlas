@@ -12,11 +12,22 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg-deep: #000;
-      --bg-vignette: radial-gradient(ellipse at center, #060812 0%, #000 80%);
+      /* water (background) — deep navy/teal that reads as ocean rather than void */
+      --bg-water-deep: #050913;
+      --bg-water-near: #0a1326;
+      --bg-vignette: radial-gradient(ellipse at center, var(--bg-water-near) 0%, var(--bg-water-deep) 75%);
 
-      --line-rest: rgba(120, 220, 240, 0.42);
-      --line-rest-stroke: 0.8;
+      /* land — slightly warmer, warmer-grey shore so neighborhoods sit on something */
+      --land-fill: rgba(40, 48, 62, 0.55);
+      --land-stroke: rgba(120, 220, 240, 0.32);
+      --land-stroke-width: 1.0;
+
+      /* borough boundaries — slightly thicker than neighborhood lines to read as a tier above */
+      --borough-stroke: rgba(180, 230, 255, 0.42);
+      --borough-stroke-width: 1.1;
+
+      --line-rest: rgba(170, 230, 250, 0.55);
+      --line-rest-stroke: 0.7;
 
       --line-hover: rgba(160, 250, 255, 1.0);
       --line-hover-stroke: 1.6;
@@ -50,7 +61,7 @@
     html, body {
       height: 100%;
       width: 100%;
-      background: var(--bg-deep);
+      background: var(--bg-water-deep);
       color: var(--text-primary);
       font-family: var(--mono);
       overflow: hidden;
@@ -60,6 +71,37 @@
       background: var(--bg-vignette);
       display: flex;
       flex-direction: column;
+    }
+
+    /* ---------- orientation layers ---------- */
+
+    .land {
+      fill: var(--land-fill);
+      stroke: var(--land-stroke);
+      stroke-width: var(--land-stroke-width);
+      pointer-events: none;
+    }
+
+    .borough-outline {
+      fill: none;
+      stroke: var(--borough-stroke);
+      stroke-width: var(--borough-stroke-width);
+      stroke-dasharray: 2 4;
+      pointer-events: none;
+    }
+
+    .borough-label {
+      fill: rgba(220, 240, 255, 0.42);
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+      paint-order: stroke;
+      stroke: rgba(0, 0, 0, 0.6);
+      stroke-width: 3px;
     }
 
     /* ---------- header ---------- */
@@ -184,6 +226,11 @@
       filter: url(#glow-strong);
     }
     .nh.muted { opacity: 0.45; }
+    /* boroughs not selected for quiz scope still render but step back visually */
+    .nh.out-of-scope { opacity: 0.35; }
+    .nh.out-of-scope.unlit { opacity: 0.20; }
+    /* user-hidden neighborhoods (clicked to hide in Mode D) — barely there */
+    .nh.user-hidden { opacity: 0.05; pointer-events: stroke; }
     .nh.correct {
       stroke: var(--line-correct);
       fill: var(--line-correct-fill);
@@ -389,6 +436,61 @@
     }
     .modal button:hover { border-color: rgba(120, 240, 255, 0.9); color: rgba(180, 240, 255, 1); }
 
+    .quiz-summary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .quiz-summary .label {
+      margin-right: 0;
+      color: var(--text-whisper);
+    }
+    .quiz-summary #quiz-summary-text {
+      color: var(--text-primary);
+      letter-spacing: 0.04em;
+    }
+    .restore-btn {
+      color: var(--text-whisper);
+      border-color: rgba(120, 220, 240, 0.12);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+    }
+    .restore-btn:hover { color: var(--text-primary); border-color: rgba(120, 240, 255, 0.5); }
+
+    /* quiz scope dialog */
+    .borough-row {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.45rem 0.65rem;
+      border: 1px solid rgba(120, 220, 240, 0.18);
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--text-primary);
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .borough-row { transition: border-color var(--speed), background var(--speed); }
+    }
+    .borough-row:hover { border-color: rgba(120, 240, 255, 0.5); }
+    .borough-row.checked {
+      border-color: rgba(120, 240, 255, 0.7);
+      background: rgba(120, 240, 255, 0.06);
+    }
+    .borough-row .check-mark {
+      display: inline-flex;
+      width: 1.1rem;
+      height: 1.1rem;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(120, 220, 240, 0.4);
+      border-radius: 2px;
+      font-size: 0.75rem;
+      color: rgba(160, 250, 255, 1);
+    }
+    .borough-row.checked .check-mark::after { content: "✓"; }
+
     .data-credit {
       position: absolute;
       bottom: 0.4rem;
@@ -399,6 +501,37 @@
       color: var(--text-whisper);
       text-transform: uppercase;
       pointer-events: none;
+    }
+
+    /* ---------- zoom controls ---------- */
+
+    .zoom-controls {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      z-index: 5;
+    }
+    .zoom-btn {
+      width: 2rem;
+      height: 2rem;
+      background: rgba(8, 12, 20, 0.85);
+      border: 1px solid rgba(120, 220, 240, 0.25);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-family: var(--serif);
+      font-size: 1.05rem;
+      border-radius: 3px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .zoom-btn:hover { border-color: rgba(120, 240, 255, 0.7); color: rgba(180, 240, 255, 1); }
+    @media (prefers-reduced-motion: no-preference) {
+      .zoom-btn { transition: border-color var(--speed), color var(--speed); }
     }
 
     @media (max-width: 720px) {
@@ -419,11 +552,16 @@
       <button class="ctrl-btn" data-mode="B">type</button>
       <button class="ctrl-btn" data-mode="C">find</button>
     </div>
-    <div class="control-group" id="scope-group">
-      <span class="label">scope</span>
-      <button class="ctrl-btn" data-scope="Both">all</button>
-      <button class="ctrl-btn" data-scope="Manhattan">manhattan</button>
-      <button class="ctrl-btn" data-scope="Brooklyn">brooklyn</button>
+    <div class="control-group" id="quiz-group">
+      <button class="ctrl-btn quiz-summary" id="quiz-btn">
+        <span class="label">quiz</span>
+        <span id="quiz-summary-text">manhattan + brooklyn</span>
+      </button>
+    </div>
+    <div class="control-group" id="hidden-group" hidden>
+      <button class="ctrl-btn restore-btn" id="restore-hidden" title="restore hidden neighborhoods">
+        <span id="hidden-count">0</span> hidden · restore
+      </button>
     </div>
     <div class="control-group" id="length-group">
       <span class="label">round</span>
@@ -462,8 +600,16 @@
           </feMerge>
         </filter>
       </defs>
+      <g id="atlas-land"></g>
+      <g id="atlas-boroughs"></g>
       <g id="atlas-features"></g>
+      <g id="atlas-borough-labels"></g>
     </svg>
+    <div class="zoom-controls">
+      <button class="zoom-btn" id="zoom-in" title="zoom in" aria-label="zoom in">+</button>
+      <button class="zoom-btn" id="zoom-out" title="zoom out" aria-label="zoom out">−</button>
+      <button class="zoom-btn" id="zoom-reset" title="reset view" aria-label="reset view">⊙</button>
+    </div>
     <div class="label-tip" id="label-tip"></div>
     <div class="footer-panel" id="footer-panel"></div>
     <div class="data-credit" id="data-credit">data: pediacities · curation: gregorovich</div>
@@ -491,6 +637,18 @@ walk with me.</div>
     </div>
   </div>
 
+  <div class="modal-veil" id="modal-quiz" role="dialog" aria-modal="true" aria-label="quiz scope">
+    <div class="modal">
+      <div class="reflection" style="margin-bottom: 1.2rem;">which territories do you want to walk?</div>
+      <div class="stats" style="margin-bottom: 0.4rem;">quiz scope</div>
+      <div id="quiz-borough-list" style="display: flex; flex-direction: column; gap: 0.55rem; margin-bottom: 1.4rem;"></div>
+      <div style="display: flex; gap: 0.6rem; align-items: center;">
+        <button id="quiz-confirm">begin walk</button>
+        <button id="quiz-cancel" style="border-color: rgba(120,220,240,0.18); color: var(--text-dim);">cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     /* ============================================================
        atlas/data — injected by build_data.py
@@ -502,6 +660,11 @@ walk with me.</div>
     ;
     const ATLAS_META = // <<<META>>>
     ;
+    const OUTLINES = // <<<OUTLINES>>>
+    ;
+
+    const ALL_BOROUGHS = ["Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"];
+    const DEFAULT_QUIZ_BOROUGHS = ["Manhattan", "Brooklyn"];
 
     /* ============================================================
        atlas/voice — wizard text by event
@@ -567,12 +730,14 @@ walk with me.</div>
        ============================================================ */
 
     const atlasStorage = (() => {
-      const VERSION = "1";
+      const VERSION = "2"; // bumped: schema added boroughs key + 5-borough scope
       const KEY_VERSION = "nyc_atlas:version";
       const KEY_INTRO = "nyc_atlas:seen_intro";
       const KEY_SCORES = "nyc_atlas:scores";
       const KEY_MASTERY = "nyc_atlas:mastery";
       const KEY_MILESTONES = "nyc_atlas:milestones";
+      const KEY_BOROUGHS = "nyc_atlas:boroughs";
+      const KEY_VIEW = "nyc_atlas:view";
 
       const memory = {};
       let usingMemory = false;
@@ -592,7 +757,7 @@ walk with me.</div>
       // Version migration / reset
       const ver = _read(KEY_VERSION);
       if (ver !== VERSION) {
-        [KEY_INTRO, KEY_SCORES, KEY_MASTERY, KEY_MILESTONES].forEach(_del);
+        [KEY_INTRO, KEY_SCORES, KEY_MASTERY, KEY_MILESTONES, KEY_BOROUGHS, KEY_VIEW].forEach(_del);
         _write(KEY_VERSION, VERSION);
       }
 
@@ -613,8 +778,14 @@ walk with me.</div>
         setMastery(m) { _writeJSON(KEY_MASTERY, m); },
         getMilestones() { return _readJSON(KEY_MILESTONES, {}); },
         setMilestones(m) { _writeJSON(KEY_MILESTONES, m); },
+        getBoroughs() { return _readJSON(KEY_BOROUGHS, null); },
+        setBoroughs(arr) { _writeJSON(KEY_BOROUGHS, arr); },
+        getView() { return _readJSON(KEY_VIEW, null); },
+        setView(v) { _writeJSON(KEY_VIEW, v); },
+        getHidden() { return _readJSON("nyc_atlas:hidden", []); },
+        setHidden(arr) { _writeJSON("nyc_atlas:hidden", arr); },
         resetAll() {
-          [KEY_INTRO, KEY_SCORES, KEY_MASTERY, KEY_MILESTONES].forEach(_del);
+          [KEY_INTRO, KEY_SCORES, KEY_MASTERY, KEY_MILESTONES, KEY_BOROUGHS, KEY_VIEW, "nyc_atlas:hidden"].forEach(_del);
           for (const k of Object.keys(memory)) delete memory[k];
         }
       };
@@ -645,16 +816,23 @@ walk with me.</div>
       let bbox = null;          // [minx, miny, maxx, maxy] in projected mercator
       let scale = 1;
       let offsetX = 0, offsetY = 0;
+      // base scale + offset (the "fit to bounds" transform); zoom/pan applies on top.
+      let baseScale = 1, baseOffsetX = 0, baseOffsetY = 0;
+      let zoom = 1, panX = 0, panY = 0;
 
-      function computeBBox(features) {
+      function computeBBox(geometries) {
         let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
         function forEachPoint(coords, fn) {
           if (!coords.length) return;
           if (typeof coords[0] === "number") fn(coords);
           else for (const c of coords) forEachPoint(c, fn);
         }
-        for (const feat of features) {
-          forEachPoint(feat.geometry.coordinates, ([lon, lat]) => {
+        const items = Array.isArray(geometries) ? geometries : [geometries];
+        for (const item of items) {
+          if (!item) continue;
+          const coords = item.geometry ? item.geometry.coordinates : item.coordinates;
+          if (!coords) continue;
+          forEachPoint(coords, ([lon, lat]) => {
             const [x, y] = mercator(lon, lat);
             if (x < minx) minx = x;
             if (y < miny) miny = y;
@@ -672,11 +850,62 @@ walk with me.</div>
         const h = maxy - miny;
         const sx = (width - 2 * padding) / w;
         const sy = (height - 2 * padding) / h;
-        scale = Math.min(sx, sy);
-        const projW = w * scale;
-        const projH = h * scale;
-        offsetX = (width - projW) / 2 - minx * scale;
-        offsetY = (height - projH) / 2 + maxy * scale; // SVG y inverted
+        baseScale = Math.min(sx, sy);
+        const projW = w * baseScale;
+        const projH = h * baseScale;
+        baseOffsetX = (width - projW) / 2 - minx * baseScale;
+        baseOffsetY = (height - projH) / 2 + maxy * baseScale; // SVG y inverted
+        _applyZoom();
+      }
+
+      function _applyZoom() {
+        scale = baseScale * zoom;
+        offsetX = baseOffsetX * zoom + panX + (1 - zoom) * (viewport ? viewport.width / 2 : 0);
+        offsetY = baseOffsetY * zoom + panY + (1 - zoom) * (viewport ? viewport.height / 2 : 0);
+      }
+
+      function setZoom(z, anchorX, anchorY) {
+        // Zoom around (anchorX, anchorY) in screen pixels — keeps that point stable.
+        const oldScale = scale;
+        const oldOffsetX = offsetX;
+        const oldOffsetY = offsetY;
+        const newZoom = Math.max(0.5, Math.min(z, 16));
+        const newScale = baseScale * newZoom;
+        if (anchorX === undefined) anchorX = viewport ? viewport.width / 2 : 0;
+        if (anchorY === undefined) anchorY = viewport ? viewport.height / 2 : 0;
+        // Pre-zoom world coord at anchor:
+        // worldX = (anchorX - oldOffsetX) / oldScale  (mercator x)
+        // After zoom, want anchorX = worldX * newScale + newOffsetX
+        const worldX = (anchorX - oldOffsetX) / oldScale;
+        const worldY = (oldOffsetY - anchorY) / oldScale;  // y inverted
+        // newOffsetX = anchorX - worldX * newScale
+        const newOffsetX = anchorX - worldX * newScale;
+        const newOffsetY = anchorY + worldY * newScale;
+        zoom = newZoom;
+        scale = newScale;
+        offsetX = newOffsetX;
+        offsetY = newOffsetY;
+        // Pull pan back out of the offsets so resets work.
+        panX = newOffsetX - baseOffsetX * zoom - (1 - zoom) * (viewport ? viewport.width / 2 : 0);
+        panY = newOffsetY - baseOffsetY * zoom - (1 - zoom) * (viewport ? viewport.height / 2 : 0);
+      }
+
+      function panBy(dx, dy) {
+        panX += dx;
+        panY += dy;
+        offsetX += dx;
+        offsetY += dy;
+      }
+
+      function reset() {
+        zoom = 1; panX = 0; panY = 0;
+        if (viewport) _applyZoom();
+      }
+
+      function getView() { return { zoom, panX, panY }; }
+      function setView(v) {
+        zoom = v.zoom || 1; panX = v.panX || 0; panY = v.panY || 0;
+        if (viewport) _applyZoom();
       }
 
       function project(lon, lat) {
@@ -694,6 +923,7 @@ walk with me.</div>
       }
 
       function geometryToPath(geom) {
+        if (!geom) return "";
         if (geom.type === "Polygon") {
           return geom.coordinates.map(ringToPath).join(" ");
         }
@@ -708,8 +938,10 @@ walk with me.</div>
         fit,
         project,
         geometryToPath,
+        setZoom, panBy, reset, getView, setView,
         get bbox() { return bbox; },
         get viewport() { return viewport; },
+        get zoom() { return zoom; },
       };
     })();
 
@@ -755,22 +987,58 @@ walk with me.</div>
 
     const atlasRender = (() => {
       const svg = document.getElementById("atlas");
+      const landGroup = document.getElementById("atlas-land");
+      const boroughsGroup = document.getElementById("atlas-boroughs");
       const featuresGroup = document.getElementById("atlas-features");
+      const labelGroup = document.getElementById("atlas-borough-labels");
       const labelTip = document.getElementById("label-tip");
 
       // id -> {feature, path-element, props}
       const byId = new Map();
+      // borough -> path-element (outline)
+      const boroughPaths = new Map();
+      // borough -> text-element (label)
+      const boroughLabels = new Map();
+      let landPath = null;
 
       let featuresList = [];
 
       function build(features) {
         featuresList = features;
-        atlasGeo.computeBBox(features);
+        // Compute bbox over all visible content (features + outlines) so the
+        // initial fit shows the whole region, not just the quiz pool.
+        const allShapes = [];
+        for (const f of features) allShapes.push(f);
+        if (OUTLINES?.nyc) allShapes.push({ geometry: OUTLINES.nyc });
+        atlasGeo.computeBBox(allShapes);
         const r = svg.getBoundingClientRect();
         atlasGeo.fit(r.width, r.height);
         svg.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
 
-        // Clear + rebuild
+        // Land layer (NYC outline filled with land color)
+        while (landGroup.firstChild) landGroup.removeChild(landGroup.firstChild);
+        if (OUTLINES?.nyc) {
+          landPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          landPath.setAttribute("d", atlasGeo.geometryToPath(OUTLINES.nyc));
+          landPath.setAttribute("class", "land");
+          landGroup.appendChild(landPath);
+        }
+
+        // Borough boundaries
+        while (boroughsGroup.firstChild) boroughsGroup.removeChild(boroughsGroup.firstChild);
+        boroughPaths.clear();
+        if (OUTLINES?.boroughs) {
+          for (const [b, geom] of Object.entries(OUTLINES.boroughs)) {
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", atlasGeo.geometryToPath(geom));
+            path.setAttribute("class", "borough-outline");
+            path.setAttribute("data-borough", b);
+            boroughsGroup.appendChild(path);
+            boroughPaths.set(b, path);
+          }
+        }
+
+        // Feature polygons
         while (featuresGroup.firstChild) featuresGroup.removeChild(featuresGroup.firstChild);
         byId.clear();
 
@@ -784,14 +1052,50 @@ walk with me.</div>
           featuresGroup.appendChild(path);
           byId.set(feat.properties.id, { feature: feat, element: path });
         }
+
+        // Borough labels (top layer, above features)
+        while (labelGroup.firstChild) labelGroup.removeChild(labelGroup.firstChild);
+        boroughLabels.clear();
+        if (OUTLINES?.labels) {
+          for (const [b, latlon] of Object.entries(OUTLINES.labels)) {
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            const [px, py] = atlasGeo.project(latlon[0], latlon[1]);
+            text.setAttribute("x", px.toFixed(1));
+            text.setAttribute("y", py.toFixed(1));
+            text.setAttribute("class", "borough-label");
+            text.textContent = b;
+            labelGroup.appendChild(text);
+            boroughLabels.set(b, { element: text, lonlat: latlon });
+          }
+        }
       }
 
       function rebuildPaths() {
         const r = svg.getBoundingClientRect();
         atlasGeo.fit(r.width, r.height);
         svg.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
+        rebuildPathsOnly();
+      }
+
+      function rebuildPathsOnly() {
+        // Re-stroke paths after a zoom/pan without re-fitting bounds.
+        if (landPath && OUTLINES?.nyc) {
+          landPath.setAttribute("d", atlasGeo.geometryToPath(OUTLINES.nyc));
+        }
+        if (OUTLINES?.boroughs) {
+          for (const [b, geom] of Object.entries(OUTLINES.boroughs)) {
+            const p = boroughPaths.get(b);
+            if (p) p.setAttribute("d", atlasGeo.geometryToPath(geom));
+          }
+        }
         for (const [id, entry] of byId) {
           entry.element.setAttribute("d", atlasGeo.geometryToPath(entry.feature.geometry));
+        }
+        // Reposition borough labels
+        for (const [, label] of boroughLabels) {
+          const [px, py] = atlasGeo.project(label.lonlat[0], label.lonlat[1]);
+          label.element.setAttribute("x", px.toFixed(1));
+          label.element.setAttribute("y", py.toFixed(1));
         }
       }
 
@@ -861,9 +1165,20 @@ walk with me.</div>
         return refs;
       }
 
+      function applyScopeDecorations(activeBoroughs) {
+        // Mark out-of-scope features so they recede when the player is in a
+        // quiz mode. Free exploration ignores this — every neighborhood is
+        // available in Mode D regardless of quiz scope.
+        const setBoroughs = new Set(activeBoroughs);
+        for (const [, entry] of byId) {
+          const inScope = setBoroughs.has(entry.feature.properties.borough);
+          entry.element.classList.toggle("out-of-scope", !inScope);
+        }
+      }
+
       return {
-        build, rebuildPaths,
-        setClass, clearTransientClasses, applyMasteryDecorations,
+        build, rebuildPaths, rebuildPathsOnly,
+        setClass, clearTransientClasses, applyMasteryDecorations, applyScopeDecorations,
         showLabel, hideLabel,
         getById, getRenderedNames, getExternalResourceRefs,
         bindHover, bindClick,
@@ -890,7 +1205,7 @@ walk with me.</div>
       let rand = Math.random;
 
       let mode = "D";
-      let scope = "Both";
+      let boroughs = new Set(DEFAULT_QUIZ_BOROUGHS); // active quiz scope
       let length = 10;
       let pool = [];                 // features in scope
       let askedIds = new Set();      // ids asked in current round
@@ -911,12 +1226,14 @@ walk with me.</div>
       }
 
       function setMode(m) { mode = m; }
-      function setScope(s) { scope = s; }
+      function setBoroughs(arr) {
+        boroughs = new Set(arr && arr.length ? arr : DEFAULT_QUIZ_BOROUGHS);
+      }
+      function getBoroughs() { return [...boroughs]; }
       function setLength(l) { length = l; }
 
       function _filterPool() {
-        if (scope === "Both") return [...allFeatures];
-        return allFeatures.filter(f => f.properties.borough === scope);
+        return allFeatures.filter(f => boroughs.has(f.properties.borough));
       }
 
       function startRound(opts) {
@@ -964,18 +1281,19 @@ walk with me.</div>
         askedIds.add(current.properties.id);
         asked++;
 
-        const q = { feature: current, mode, scope, length, asked, correct };
+        const q = { feature: current, mode, boroughs: [...boroughs], length, asked, correct };
         if (mode === "A") q.choices = _modeAChoices(current);
         if (listener) listener({ type: "question", ...q });
         return q;
       }
 
       function _modeAChoices(target) {
-        const correctName = target.properties.neighborhood;
         const neighbors = target.properties.neighbors || [];
-        const sameBorough = pool.filter(f => f.properties.borough === target.properties.borough && f.properties.id !== target.properties.id);
-
-        // Prefer same-borough neighbors as distractors; fall back to same-borough random
+        // Distractors come from currently selected boroughs (so they read as
+        // plausible). Prefer adjacency, fall back to same-borough random,
+        // then to any in-pool feature if the pool is small.
+        const inPool = pool.filter(f => f.properties.id !== target.properties.id);
+        const sameBorough = inPool.filter(f => f.properties.borough === target.properties.borough);
         const neighborFeatures = sameBorough.filter(f => neighbors.includes(f.properties.id));
         const otherSameB = sameBorough.filter(f => !neighbors.includes(f.properties.id));
 
@@ -991,10 +1309,13 @@ walk with me.</div>
         }
         for (const f of shuffled(neighborFeatures)) { if (picks.length < 3) picks.push(f); }
         for (const f of shuffled(otherSameB)) { if (picks.length < 3) picks.push(f); }
-
-        // If still <3 (tiny borough), draw across boroughs
+        // Fall back across boroughs in scope, then any feature
         if (picks.length < 3) {
-          const everyone = pool.filter(f => f.properties.id !== target.properties.id && !picks.includes(f));
+          const inScope = inPool.filter(f => !picks.includes(f));
+          for (const f of shuffled(inScope)) { if (picks.length < 3) picks.push(f); }
+        }
+        if (picks.length < 3) {
+          const everyone = allFeatures.filter(f => f.properties.id !== target.properties.id && !picks.includes(f));
           for (const f of shuffled(everyone)) { if (picks.length < 3) picks.push(f); }
         }
 
@@ -1037,7 +1358,7 @@ walk with me.</div>
       }
 
       function getCurrent() { return current; }
-      function getStats() { return { correct, asked, length, mode, scope }; }
+      function getStats() { return { correct, asked, length, mode, boroughs: [...boroughs] }; }
       function getPool() { return pool.map(f => f.properties.neighborhood); }
       function setListener(fn) { listener = fn; }
 
@@ -1047,19 +1368,25 @@ walk with me.</div>
       }
 
       function forceQuestion(feature) {
-        // Deterministic test seam: bypass random pool selection.
+        // Deterministic test seam: bypass random pool selection. Also
+        // ensures the target's borough is in scope so distractors / pool
+        // don't go empty when a test forces a feature outside the active
+        // borough set.
+        if (!boroughs.has(feature.properties.borough)) {
+          boroughs.add(feature.properties.borough);
+        }
         if (!pool.length) pool = _filterPool();
         current = feature;
         askedIds.add(feature.properties.id);
         asked++;
-        const q = { feature, mode, scope, length, asked, correct };
+        const q = { feature, mode, boroughs: [...boroughs], length, asked, correct };
         if (mode === "A") q.choices = _modeAChoices(feature);
         if (listener) listener({ type: "question", ...q });
         return q;
       }
 
       return {
-        init, setSeed, setMode, setScope, setLength,
+        init, setSeed, setMode, setBoroughs, getBoroughs, setLength,
         startRound, nextQuestion, submit,
         getCurrent, getStats, getPool, setListener, reset,
         forceQuestion,
@@ -1110,8 +1437,19 @@ walk with me.</div>
       const allNames = features.map(f => f.properties.neighborhood);
 
       const elModeBtns = document.querySelectorAll("[data-mode]");
-      const elScopeBtns = document.querySelectorAll("[data-scope]");
+      const elQuizBtn = document.getElementById("quiz-btn");
+      const elQuizSummary = document.getElementById("quiz-summary-text");
+      const elQuizModal = document.getElementById("modal-quiz");
+      const elQuizList = document.getElementById("quiz-borough-list");
+      const elQuizConfirm = document.getElementById("quiz-confirm");
+      const elQuizCancel = document.getElementById("quiz-cancel");
+      const elHiddenGroup = document.getElementById("hidden-group");
+      const elHiddenCount = document.getElementById("hidden-count");
+      const elRestoreHidden = document.getElementById("restore-hidden");
       const elLengthBtns = document.querySelectorAll("[data-length]");
+      const elZoomIn = document.getElementById("zoom-in");
+      const elZoomOut = document.getElementById("zoom-out");
+      const elZoomReset = document.getElementById("zoom-reset");
       const elScoreNum = document.getElementById("score-num");
       const elScoreMeta = document.getElementById("score-meta");
       const elFooter = document.getElementById("footer-panel");
@@ -1125,12 +1463,70 @@ walk with me.</div>
       const elDataCredit = document.getElementById("data-credit");
 
       let mode = "D";
-      let scope = "Both";
+      let activeBoroughs = new Set(DEFAULT_QUIZ_BOROUGHS);
       let length = 10;
       let advanceTimer = null;
+      let hiddenIds = new Set();      // user-hidden neighborhoods (Mode D click)
+      let pendingBoroughs = null;     // staged choices in quiz modal
 
-      function setActive(group, value) {
-        group.forEach(b => b.classList.toggle("active", b.dataset.mode === value || b.dataset.scope === value || String(b.dataset.length) === String(value)));
+      function setActiveSingle(group, value) {
+        group.forEach(b => b.classList.toggle(
+          "active",
+          b.dataset.mode === value || String(b.dataset.length) === String(value)
+        ));
+      }
+
+      function _shortBoroughName(b) {
+        const map = { "Manhattan": "manhattan", "Brooklyn": "brooklyn", "Queens": "queens", "Bronx": "bronx", "Staten Island": "staten" };
+        return map[b] || b.toLowerCase();
+      }
+
+      function renderQuizSummary() {
+        const list = ALL_BOROUGHS.filter(b => activeBoroughs.has(b)).map(_shortBoroughName);
+        if (list.length === ALL_BOROUGHS.length) elQuizSummary.textContent = "all five boroughs";
+        else if (list.length === 0) elQuizSummary.textContent = "(none)";
+        else elQuizSummary.textContent = list.join(" + ");
+      }
+
+      function applyHiddenDecorations() {
+        // Toggle the user-hidden class on every feature based on current set.
+        for (const id of hiddenIds) {
+          const e = atlasRender.getById(id);
+          if (e) e.element.classList.add("user-hidden");
+        }
+        for (const [id, entry] of (function*(){
+          // iterate all features; cheaper to just walk allFeatures via render API
+          for (const name of atlasRender.getRenderedNames()) {
+            const f = features.find(ff => ff.properties.neighborhood === name);
+            if (f) yield [f.properties.id, atlasRender.getById(f.properties.id)];
+          }
+        })()) {
+          if (!entry) continue;
+          if (!hiddenIds.has(id)) entry.element.classList.remove("user-hidden");
+        }
+        renderHiddenCount();
+      }
+
+      function renderHiddenCount() {
+        if (hiddenIds.size === 0) {
+          elHiddenGroup.hidden = true;
+        } else {
+          elHiddenGroup.hidden = false;
+          elHiddenCount.textContent = String(hiddenIds.size);
+        }
+      }
+
+      function toggleHidden(id) {
+        if (hiddenIds.has(id)) hiddenIds.delete(id);
+        else hiddenIds.add(id);
+        atlasStorage.setHidden([...hiddenIds]);
+        applyHiddenDecorations();
+      }
+
+      function restoreAllHidden() {
+        hiddenIds.clear();
+        atlasStorage.setHidden([]);
+        applyHiddenDecorations();
       }
 
       function clearFooter() {
@@ -1156,12 +1552,12 @@ walk with me.</div>
       function setMode(m) {
         mode = m;
         atlasQuiz.setMode(m);
-        setActive(elModeBtns, m);
+        setActiveSingle(elModeBtns, m);
         atlasRender.clearTransientClasses();
         atlasRender.applyMasteryDecorations(m);
+        if (m !== "D") atlasRender.applyScopeDecorations([...activeBoroughs]);
         clearFooter();
         if (m === "D") {
-          // Free exploration — no quiz running.
           atlasQuiz.reset();
           renderScore();
         } else {
@@ -1169,17 +1565,59 @@ walk with me.</div>
         }
       }
 
-      function setScope(s) {
-        scope = s;
-        atlasQuiz.setScope(s);
-        setActive(elScopeBtns, s);
-        if (mode !== "D") startNewRound();
+      function setBoroughs(arr) {
+        // Always keep at least one borough selected for quiz scope.
+        if (!arr || !arr.length) arr = DEFAULT_QUIZ_BOROUGHS;
+        activeBoroughs = new Set(arr);
+        atlasQuiz.setBoroughs(arr);
+        atlasStorage.setBoroughs(arr);
+        renderQuizSummary();
+        if (mode !== "D") {
+          atlasRender.applyScopeDecorations(arr);
+          startNewRound();
+        }
+      }
+
+      // ----- quiz dialog ----------------------------------------------------
+
+      function openQuizDialog() {
+        pendingBoroughs = new Set(activeBoroughs);
+        elQuizList.innerHTML = "";
+        for (const b of ALL_BOROUGHS) {
+          const row = document.createElement("div");
+          row.className = "borough-row" + (pendingBoroughs.has(b) ? " checked" : "");
+          row.innerHTML = `<span class="check-mark"></span><span>${b}</span>`;
+          row.addEventListener("click", () => {
+            if (pendingBoroughs.has(b)) {
+              if (pendingBoroughs.size > 1) pendingBoroughs.delete(b);
+              else return; // never empty
+            } else {
+              pendingBoroughs.add(b);
+            }
+            row.classList.toggle("checked", pendingBoroughs.has(b));
+          });
+          elQuizList.appendChild(row);
+        }
+        elQuizModal.dataset.open = "1";
+      }
+
+      function confirmQuizDialog() {
+        const choices = ALL_BOROUGHS.filter(b => pendingBoroughs.has(b));
+        elQuizModal.dataset.open = "0";
+        setBoroughs(choices);
+        // Switch to a quiz mode if currently in free explore — they just
+        // declared intent to walk.
+        if (mode === "D") setMode("A");
+      }
+
+      function cancelQuizDialog() {
+        elQuizModal.dataset.open = "0";
       }
 
       function setLength(l) {
         length = l;
         atlasQuiz.setLength(l);
-        setActive(elLengthBtns, l);
+        setActiveSingle(elLengthBtns, l);
         if (mode !== "D") startNewRound();
       }
 
@@ -1192,12 +1630,21 @@ walk with me.</div>
       function paintTarget(feature) {
         atlasRender.clearTransientClasses();
         for (const f of features) {
-          atlasRender.setClass(f.properties.id, f.properties.id === feature.properties.id ? "target" : "muted");
+          const isTarget = f.properties.id === feature.properties.id;
+          const inScope = activeBoroughs.has(f.properties.borough);
+          let cls;
+          if (isTarget) cls = "target";
+          else if (!inScope) cls = "muted out-of-scope";
+          else cls = "muted";
+          atlasRender.setClass(f.properties.id, cls);
         }
       }
 
       function paintAllRestingForModeC() {
         atlasRender.clearTransientClasses();
+        // Mode C: show out-of-scope boroughs dimmed for orientation, but
+        // the in-scope ones keep full presence so the player can click them.
+        atlasRender.applyScopeDecorations([...activeBoroughs]);
       }
 
       function showModeAQuestion(q) {
@@ -1347,7 +1794,8 @@ walk with me.</div>
 
         // Update best-score
         const scores = atlasStorage.getScores();
-        const key = `${mode}:${scope}:${length}`;
+        const scopeKey = [...activeBoroughs].sort().join("+");
+        const key = `${mode}:${scopeKey}:${length}`;
         const prior = scores[key] || { best: 0, total: 0 };
         if (accuracy > prior.best) prior.best = accuracy;
         prior.total = (prior.total || 0) + 1;
@@ -1357,7 +1805,10 @@ walk with me.</div>
 
       function bindControls() {
         elModeBtns.forEach(btn => btn.addEventListener("click", () => setMode(btn.dataset.mode)));
-        elScopeBtns.forEach(btn => btn.addEventListener("click", () => setScope(btn.dataset.scope)));
+        elQuizBtn.addEventListener("click", openQuizDialog);
+        elQuizConfirm.addEventListener("click", confirmQuizDialog);
+        elQuizCancel.addEventListener("click", cancelQuizDialog);
+        elRestoreHidden.addEventListener("click", restoreAllHidden);
         elLengthBtns.forEach(btn => btn.addEventListener("click", () => setLength(parseInt(btn.dataset.length, 10))));
         elIntroBegin.addEventListener("click", () => {
           elIntro.dataset.open = "0";
@@ -1367,6 +1818,62 @@ walk with me.</div>
         elReflectionWalk.addEventListener("click", () => {
           elReflection.dataset.open = "0";
           startNewRound();
+        });
+        // Zoom controls + wheel + drag-pan
+        elZoomIn.addEventListener("click", () => zoomBy(1.4));
+        elZoomOut.addEventListener("click", () => zoomBy(1 / 1.4));
+        elZoomReset.addEventListener("click", () => resetView());
+        bindZoomPan();
+      }
+
+      function zoomBy(factor, anchorX, anchorY) {
+        const r = document.getElementById("atlas").getBoundingClientRect();
+        if (anchorX === undefined) anchorX = r.width / 2;
+        if (anchorY === undefined) anchorY = r.height / 2;
+        atlasGeo.setZoom(atlasGeo.zoom * factor, anchorX, anchorY);
+        atlasRender.rebuildPathsOnly();
+        atlasStorage.setView(atlasGeo.getView());
+      }
+      function resetView() {
+        atlasGeo.reset();
+        atlasRender.rebuildPaths();
+        atlasStorage.setView(atlasGeo.getView());
+      }
+      function bindZoomPan() {
+        const svg = document.getElementById("atlas");
+        let panActive = false;
+        let lastX = 0, lastY = 0;
+        svg.addEventListener("wheel", (e) => {
+          e.preventDefault();
+          const r = svg.getBoundingClientRect();
+          const ax = e.clientX - r.left;
+          const ay = e.clientY - r.top;
+          const factor = Math.exp(-e.deltaY * 0.0015);
+          zoomBy(factor, ax, ay);
+        }, { passive: false });
+        svg.addEventListener("mousedown", (e) => {
+          // Skip pan if click started on a polygon — let click handlers fire.
+          if (e.target.classList && e.target.classList.contains("nh")) return;
+          panActive = true;
+          lastX = e.clientX;
+          lastY = e.clientY;
+          svg.style.cursor = "grabbing";
+        });
+        window.addEventListener("mousemove", (e) => {
+          if (!panActive) return;
+          const dx = e.clientX - lastX;
+          const dy = e.clientY - lastY;
+          lastX = e.clientX;
+          lastY = e.clientY;
+          atlasGeo.panBy(dx, dy);
+          atlasRender.rebuildPathsOnly();
+        });
+        window.addEventListener("mouseup", () => {
+          if (panActive) {
+            panActive = false;
+            svg.style.cursor = "";
+            atlasStorage.setView(atlasGeo.getView());
+          }
         });
       }
 
@@ -1390,10 +1897,14 @@ walk with me.</div>
 
         atlasRender.bindClick((entry, e) => {
           if (mode === "D") {
-            // Show flavor card
+            // Toggle visibility AND surface a flavor card with name + status.
+            // Click again to restore — the territory appears and disappears.
+            toggleHidden(entry.feature.properties.id);
+            const isHidden = hiddenIds.has(entry.feature.properties.id);
             const m = atlasMastery.counts()[entry.feature.properties.id] || 0;
             const status = m >= atlasMastery.THRESHOLD ? `<span class="mastered">known</span>` : `seen ${m} / ${atlasMastery.THRESHOLD}`;
-            elFooter.innerHTML = `<div class="flavor-card"><div class="name">${entry.feature.properties.neighborhood}</div><div class="meta">${entry.feature.properties.borough} · ${status}</div></div>`;
+            const action = isHidden ? '<span style="color: var(--text-whisper);">· hidden · click again to restore</span>' : "";
+            elFooter.innerHTML = `<div class="flavor-card"><div class="name">${entry.feature.properties.neighborhood}</div><div class="meta">${entry.feature.properties.borough} · ${status} ${action}</div></div>`;
           } else if (mode === "C") {
             onClickFeatureForModeC(entry);
           }
@@ -1412,12 +1923,31 @@ walk with me.</div>
 
         atlasQuiz.init(features);
         atlasRender.build(features);
+
+        // Restore persisted boroughs (falls back to default MN+BK)
+        const persistedBoroughs = atlasStorage.getBoroughs();
+        if (persistedBoroughs && persistedBoroughs.length) {
+          activeBoroughs = new Set(persistedBoroughs);
+        }
+        atlasQuiz.setBoroughs([...activeBoroughs]);
+
+        // Restore persisted view (zoom/pan)
+        const persistedView = atlasStorage.getView();
+        if (persistedView) {
+          atlasGeo.setView(persistedView);
+          atlasRender.rebuildPathsOnly();
+        }
+
+        // Restore hidden neighborhoods
+        hiddenIds = new Set(atlasStorage.getHidden() || []);
+
         bindControls();
         bindMap();
-        setActive(elModeBtns, "D");
-        setActive(elScopeBtns, "Both");
-        setActive(elLengthBtns, "10");
+        setActiveSingle(elModeBtns, "D");
+        setActiveSingle(elLengthBtns, "10");
+        renderQuizSummary();
         atlasRender.applyMasteryDecorations("D");
+        applyHiddenDecorations();
 
         atlasQuiz.setListener((evt) => {
           if (evt.type === "question") {
@@ -1452,12 +1982,16 @@ walk with me.</div>
 
       function _testSeam() {
         return {
-          state: () => ({ mode, scope, length, stats: atlasQuiz.getStats(), current: atlasQuiz.getCurrent(), mastery: atlasMastery.counts(), seenIntro: atlasStorage.seenIntro() }),
-          reset: () => { mode = "D"; scope = "Both"; length = 10; atlasQuiz.reset(); atlasRender.clearTransientClasses(); },
+          state: () => ({ mode, boroughs: [...activeBoroughs], length, stats: atlasQuiz.getStats(), current: atlasQuiz.getCurrent(), mastery: atlasMastery.counts(), seenIntro: atlasStorage.seenIntro(), zoom: atlasGeo.zoom }),
+          reset: () => { mode = "D"; activeBoroughs = new Set(DEFAULT_QUIZ_BOROUGHS); length = 10; atlasQuiz.reset(); atlasRender.clearTransientClasses(); },
           resetStorage: () => { atlasStorage.resetAll(); atlasMastery.reset(); location.reload(); },
           setSeed: (seed) => atlasQuiz.setSeed(seed),
           setMode: (m) => setMode(m),
-          setScope: (s) => setScope(s),
+          setBoroughs: (arr) => setBoroughs(arr),
+          getBoroughs: () => [...activeBoroughs],
+          zoomBy: (f) => zoomBy(f),
+          resetView: () => resetView(),
+          getZoom: () => atlasGeo.zoom,
           startRound: (l) => {
             // Test seam: deterministic start. Doesn't auto-fire a random
             // first question — caller is expected to follow up with
