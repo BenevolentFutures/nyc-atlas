@@ -1,0 +1,16 @@
+{
+  "_comment": "Curation overlay applied after Pediacities filter. Each entry rewrites the curated GeoJSON. Used to drop park-only features, deduplicate small island/marsh repeats, and any future renames/merges.",
+  "exclude": [
+    {"borough": "Brooklyn", "neighborhood": "Jamaica Bay", "reason": "14 repeated marsh/water features, not a teachable neighborhood"},
+    {"borough": "Brooklyn", "neighborhood": "Bergen Beach", "reason": "mostly water in Pediacities boundary, not quiz-worthy"},
+    {"borough": "Brooklyn", "neighborhood": "Plum Beach", "reason": "tiny outlying beach, not a recognizable neighborhood"},
+    {"borough": "Brooklyn", "neighborhood": "Floyd Bennett Field", "reason": "former airfield, park-only"},
+    {"borough": "Brooklyn", "neighborhood": "Green-Wood Cemetery", "reason": "cemetery, not a residential neighborhood"},
+    {"borough": "Brooklyn", "neighborhood": "Prospect Park", "reason": "park, not a neighborhood"},
+    {"borough": "Manhattan", "neighborhood": "Central Park", "reason": "park, not a neighborhood"}
+  ],
+  "merge_duplicates": [
+    {"borough": "Brooklyn", "neighborhood": "Marine Park", "strategy": "keep_largest", "reason": "appears 3x in Pediacities; keep the largest polygon (the Brooklyn neighborhood proper, not the park slivers)"}
+  ],
+  "rename": []
+}
