@@ -427,13 +427,58 @@ def compute_outlines(features: list[dict]) -> dict:
     }
 
 
-def load_bridges() -> list[dict]:
-    """Bridges are hand-curated in data/bridges.json — coords are approximate
-    and the rendering is decorative orientation, not navigation."""
+def load_bridges(curated_features: list[dict]) -> list[dict]:
+    """Resolve bridge geometry. Bridges with `anchors: [neighborhood-id, ...]`
+    have endpoints computed from the actual polygon edges (closest pair of
+    points between consecutive polygons), so they're guaranteed to land on
+    land. Bridges with manual `path: [[lon, lat], ...]` fall through (used
+    for NJ-side bridges where we don't have a polygon to anchor against).
+    """
     if not BRIDGES_PATH.exists():
         return []
+    from shapely.ops import nearest_points
+
+    by_id = {f["properties"]["id"]: shape(f["geometry"]) for f in curated_features}
     data = json.loads(BRIDGES_PATH.read_text())
-    return data.get("bridges", [])
+    out = []
+    skipped = []
+    for spec in data.get("bridges", []):
+        name = spec["name"]
+        if "path" in spec:
+            out.append({"name": name, "path": spec["path"]})
+            continue
+        anchors = spec.get("anchors", [])
+        if len(anchors) < 2:
+            skipped.append(f"{name}: needs path or >=2 anchors")
+            continue
+        # Resolve each anchor; bail on the whole bridge if any are missing.
+        geoms = []
+        missing = [a for a in anchors if a not in by_id]
+        if missing:
+            skipped.append(f"{name}: missing anchors {missing}")
+            continue
+        for a in anchors:
+            geoms.append(by_id[a])
+        # For each consecutive pair, find the closest pair of points between
+        # the two polygons and emit those as path waypoints.
+        path = []
+        for i in range(len(geoms) - 1):
+            try:
+                p1, p2 = nearest_points(geoms[i], geoms[i + 1])
+            except Exception as e:
+                skipped.append(f"{name}: nearest_points failed at segment {i}: {e}")
+                path = None
+                break
+            if i == 0:
+                path.append([round(p1.x, COORDINATE_PRECISION), round(p1.y, COORDINATE_PRECISION)])
+            path.append([round(p2.x, COORDINATE_PRECISION), round(p2.y, COORDINATE_PRECISION)])
+        if path is None:
+            continue
+        out.append({"name": name, "path": path})
+    if skipped:
+        for s in skipped:
+            print(f"  WARN bridge {s}")
+    return out
 
 
 def load_water_labels() -> list[dict]:
@@ -449,7 +494,7 @@ def compute_outlines_v2(features: list[dict], raw_features: list[dict], edits: d
     """Wrapper that adds landmark + bridge + water-label data to the payload."""
     out = compute_outlines(features)
     out["landmarks"] = compute_landmarks(raw_features, edits)
-    out["bridges"] = load_bridges()
+    out["bridges"] = load_bridges(features)
     out["water_labels"] = load_water_labels()
     print(f"  bridges: {len(out['bridges'])}, water labels: {len(out['water_labels'])}")
     return out
