@@ -2002,6 +2002,55 @@ walk with me.</div>
           else cls = "muted";
           atlasRender.setClass(f.properties.id, cls);
         }
+        // Auto-pan: if the target isn't comfortably in view, smoothly pan
+        // to center on its centroid. Preserves current zoom — if the player
+        // has zoomed out to see the whole city, that's preserved; if they've
+        // zoomed into Manhattan and we ask about a Brooklyn neighborhood,
+        // we slide over instead of dropping the target offscreen.
+        focusOnTarget(feature);
+      }
+
+      function focusOnTarget(feature) {
+        if (!feature || !feature.properties.centroid) return;
+        const svg = document.getElementById("atlas");
+        const r = svg.getBoundingClientRect();
+        const [cx, cy] = feature.properties.centroid;
+        const [px, py] = atlasGeo.project(cx, cy);
+        // 18% margin: as long as the target sits well inside the visible
+        // area, we don't twitch the map for small offsets.
+        const cushion = 0.18;
+        const inView =
+          px >= r.width * cushion && px <= r.width * (1 - cushion) &&
+          py >= r.height * cushion && py <= r.height * (1 - cushion);
+        if (inView) return;
+        const dx = r.width / 2 - px;
+        const dy = r.height / 2 - py;
+        _animatePanBy(dx, dy, 450);
+      }
+
+      let _panAnimToken = 0;
+      function _animatePanBy(totalDX, totalDY, duration) {
+        const myToken = ++_panAnimToken;
+        let lastEase = 0;
+        const startTime = performance.now();
+        function tick(now) {
+          // Cancel if a newer animation started.
+          if (myToken !== _panAnimToken) return;
+          const t = Math.min(1, (now - startTime) / duration);
+          // Ease-out cubic
+          const ease = 1 - Math.pow(1 - t, 3);
+          const stepDX = totalDX * (ease - lastEase);
+          const stepDY = totalDY * (ease - lastEase);
+          lastEase = ease;
+          atlasGeo.panBy(stepDX, stepDY);
+          atlasRender.rebuildPathsOnly();
+          if (t < 1) requestAnimationFrame(tick);
+          else {
+            atlasStorage.setView(atlasGeo.getView());
+            renderScalebar();
+          }
+        }
+        requestAnimationFrame(tick);
       }
 
       function paintAllRestingForModeC() {
