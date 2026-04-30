@@ -31,6 +31,7 @@ RAW_PATH = DATA_DIR / "neighborhoods.raw.geojson"
 CURATED_PATH = DATA_DIR / "neighborhoods.curated.geojson"
 EDITS_PATH = DATA_DIR / "edits.json"
 ALIASES_PATH = DATA_DIR / "aliases.json"
+BRIDGES_PATH = DATA_DIR / "bridges.json"
 NE_LAND_PATH = DATA_DIR / "ne_10m_land.geojson"
 MATCH_MODULE_PATH = LIB_DIR / "match.js"
 TEMPLATE_PATH = PROJECT_DIR / "index.template.html"
@@ -425,10 +426,21 @@ def compute_outlines(features: list[dict]) -> dict:
     }
 
 
+def load_bridges() -> list[dict]:
+    """Bridges are hand-curated in data/bridges.json — coords are approximate
+    and the rendering is decorative orientation, not navigation."""
+    if not BRIDGES_PATH.exists():
+        return []
+    data = json.loads(BRIDGES_PATH.read_text())
+    return data.get("bridges", [])
+
+
 def compute_outlines_v2(features: list[dict], raw_features: list[dict], edits: dict) -> dict:
-    """Wrapper that adds landmark data to the outlines payload."""
+    """Wrapper that adds landmark + bridge data to the outlines payload."""
     out = compute_outlines(features)
     out["landmarks"] = compute_landmarks(raw_features, edits)
+    out["bridges"] = load_bridges()
+    print(f"  bridges: {len(out['bridges'])}")
     return out
 
 
