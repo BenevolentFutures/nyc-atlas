@@ -31,9 +31,17 @@ RAW_PATH = DATA_DIR / "neighborhoods.raw.geojson"
 CURATED_PATH = DATA_DIR / "neighborhoods.curated.geojson"
 EDITS_PATH = DATA_DIR / "edits.json"
 ALIASES_PATH = DATA_DIR / "aliases.json"
+NE_LAND_PATH = DATA_DIR / "ne_10m_land.geojson"
 MATCH_MODULE_PATH = LIB_DIR / "match.js"
 TEMPLATE_PATH = PROJECT_DIR / "index.template.html"
 OUTPUT_PATH = PROJECT_DIR / "index.html"
+
+# Bounding box for the regional coastline layer (NYC metro): roughly
+# Trenton-NJ-area in the south to White-Plains in the north, Princeton-area
+# in the west to mid-Long Island in the east. Wide enough that the player
+# can see Jersey City / Hoboken / Yonkers / western LI for orientation.
+REGIONAL_BBOX = (-74.5, 40.42, -73.4, 41.05)
+REGIONAL_SIMPLIFY_TOLERANCE = 0.0008
 
 # ----- config ----------------------------------------------------------------
 
@@ -269,6 +277,55 @@ def load_match_module() -> str:
     return src.strip()
 
 
+def compute_regional_land(nyc_outline_geom) -> dict | None:
+    """Clip Natural Earth 10m land polygons to the NYC metro bbox and
+    subtract the NYC outline so the regional layer reads as the surrounding
+    territory: New Jersey shore (Jersey City / Hoboken / Bayonne), Long
+    Island east of Brooklyn/Queens, Westchester to the north."""
+    if not NE_LAND_PATH.exists():
+        url = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_land.geojson"
+        print(f"  fetching Natural Earth land polygons (~10 MB) from {url}")
+        try:
+            import requests
+            r = requests.get(url, timeout=60)
+            r.raise_for_status()
+            NE_LAND_PATH.write_bytes(r.content)
+            print(f"  cached to {NE_LAND_PATH} ({NE_LAND_PATH.stat().st_size:,} bytes)")
+        except Exception as e:
+            print(f"  WARN: download failed ({e}) — skipping regional outline")
+            return None
+    try:
+        from shapely.geometry import box
+        ne = json.loads(NE_LAND_PATH.read_text())
+        bbox = box(*REGIONAL_BBOX)
+        clipped_pieces = []
+        for feat in ne["features"]:
+            geom = shape(feat["geometry"])
+            if not geom.is_valid:
+                geom = make_valid(geom)
+            try:
+                inter = geom.intersection(bbox)
+                if not inter.is_empty:
+                    clipped_pieces.append(inter)
+            except Exception:
+                continue
+        if not clipped_pieces:
+            return None
+        regional = unary_union(clipped_pieces)
+        if nyc_outline_geom is not None:
+            try:
+                regional = regional.difference(nyc_outline_geom.buffer(0.0001))
+            except Exception:
+                pass
+        regional = regional.simplify(REGIONAL_SIMPLIFY_TOLERANCE, preserve_topology=True)
+        if regional.is_empty:
+            return None
+        return round_coords(mapping(regional), COORDINATE_PRECISION)
+    except Exception as e:
+        print(f"  WARN: regional outline failed: {e}")
+        return None
+
+
 def compute_outlines(features: list[dict]) -> dict:
     """Compute borough-union and NYC-union outlines for orientation layers.
 
@@ -309,16 +366,27 @@ def compute_outlines(features: list[dict]) -> dict:
             print(f"  WARN: outline for {b} failed: {e}")
 
     nyc_outline = None
+    nyc_outline_geom = None
     if all_geoms:
         try:
             unioned_all = unary_union(all_geoms)
+            nyc_outline_geom = unioned_all
             simplified_all = unioned_all.simplify(OUTLINE_SIMPLIFY_TOLERANCE * 1.5, preserve_topology=True)
             nyc_outline = round_coords(mapping(simplified_all), COORDINATE_PRECISION)
         except Exception as e:
             print(f"  WARN: NYC outline failed: {e}")
 
-    print(f"  outlines computed: {len(borough_outlines)} boroughs + {'NYC' if nyc_outline else 'no NYC'}")
-    return {"boroughs": borough_outlines, "labels": borough_label_points, "nyc": nyc_outline}
+    regional = compute_regional_land(nyc_outline_geom)
+
+    print(f"  outlines computed: {len(borough_outlines)} boroughs + "
+          f"{'NYC' if nyc_outline else 'no NYC'} + "
+          f"{'regional' if regional else 'no regional'}")
+    return {
+        "boroughs": borough_outlines,
+        "labels": borough_label_points,
+        "nyc": nyc_outline,
+        "regional": regional,
+    }
 
 
 def inject_template(template_text: str, replacements: dict[str, str]) -> str:

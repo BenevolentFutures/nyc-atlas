@@ -75,6 +75,16 @@
 
     /* ---------- orientation layers ---------- */
 
+    /* Regional context (NJ shore, Long Island east of NYC, Westchester):
+       sits below the city itself and reads quietly so it orients without
+       competing with the neighborhoods. */
+    .regional-land {
+      fill: rgba(28, 36, 50, 0.55);
+      stroke: rgba(120, 200, 230, 0.18);
+      stroke-width: 0.6;
+      pointer-events: none;
+    }
+
     .land {
       fill: var(--land-fill);
       stroke: var(--land-stroke);
@@ -600,6 +610,7 @@
           </feMerge>
         </filter>
       </defs>
+      <g id="atlas-regional"></g>
       <g id="atlas-land"></g>
       <g id="atlas-boroughs"></g>
       <g id="atlas-features"></g>
@@ -987,6 +998,7 @@ walk with me.</div>
 
     const atlasRender = (() => {
       const svg = document.getElementById("atlas");
+      const regionalGroup = document.getElementById("atlas-regional");
       const landGroup = document.getElementById("atlas-land");
       const boroughsGroup = document.getElementById("atlas-boroughs");
       const featuresGroup = document.getElementById("atlas-features");
@@ -1000,20 +1012,33 @@ walk with me.</div>
       // borough -> text-element (label)
       const boroughLabels = new Map();
       let landPath = null;
+      let regionalPath = null;
 
       let featuresList = [];
 
       function build(features) {
         featuresList = features;
-        // Compute bbox over all visible content (features + outlines) so the
-        // initial fit shows the whole region, not just the quiz pool.
+        // Compute bbox over the regional layer when present (so NJ + LI fit
+        // the viewport too); fall back to NYC + features otherwise.
         const allShapes = [];
-        for (const f of features) allShapes.push(f);
-        if (OUTLINES?.nyc) allShapes.push({ geometry: OUTLINES.nyc });
+        if (OUTLINES?.regional) allShapes.push({ geometry: OUTLINES.regional });
+        else {
+          for (const f of features) allShapes.push(f);
+          if (OUTLINES?.nyc) allShapes.push({ geometry: OUTLINES.nyc });
+        }
         atlasGeo.computeBBox(allShapes);
         const r = svg.getBoundingClientRect();
         atlasGeo.fit(r.width, r.height);
         svg.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
+
+        // Regional context layer (NJ shore, Long Island, Westchester)
+        while (regionalGroup.firstChild) regionalGroup.removeChild(regionalGroup.firstChild);
+        if (OUTLINES?.regional) {
+          regionalPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          regionalPath.setAttribute("d", atlasGeo.geometryToPath(OUTLINES.regional));
+          regionalPath.setAttribute("class", "regional-land");
+          regionalGroup.appendChild(regionalPath);
+        }
 
         // Land layer (NYC outline filled with land color)
         while (landGroup.firstChild) landGroup.removeChild(landGroup.firstChild);
@@ -1079,6 +1104,9 @@ walk with me.</div>
 
       function rebuildPathsOnly() {
         // Re-stroke paths after a zoom/pan without re-fitting bounds.
+        if (regionalPath && OUTLINES?.regional) {
+          regionalPath.setAttribute("d", atlasGeo.geometryToPath(OUTLINES.regional));
+        }
         if (landPath && OUTLINES?.nyc) {
           landPath.setAttribute("d", atlasGeo.geometryToPath(OUTLINES.nyc));
         }
