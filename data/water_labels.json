@@ -1,0 +1,18 @@
+{
+  "_comment": "Water body labels — placed at approximate centers of the named water. Italics in the rendered map.",
+  "labels": [
+    {"name": "East River",         "at": [-73.979, 40.738]},
+    {"name": "Hudson River",       "at": [-74.025, 40.785]},
+    {"name": "Harlem River",       "at": [-73.927, 40.835]},
+    {"name": "Newtown Creek",      "at": [-73.945, 40.733]},
+    {"name": "The Narrows",        "at": [-74.045, 40.610]},
+    {"name": "Jamaica Bay",        "at": [-73.870, 40.617]},
+    {"name": "Long Island Sound",  "at": [-73.730, 40.880]},
+    {"name": "Upper New York Bay", "at": [-74.060, 40.665]},
+    {"name": "Lower New York Bay", "at": [-74.050, 40.530]},
+    {"name": "Flushing Bay",       "at": [-73.860, 40.775]},
+    {"name": "Arthur Kill",        "at": [-74.225, 40.580]},
+    {"name": "Kill Van Kull",      "at": [-74.130, 40.640]},
+    {"name": "Atlantic Ocean",     "at": [-73.910, 40.490]}
+  ]
+}

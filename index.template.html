@@ -155,6 +155,145 @@
       filter: url(#glow-soft);
     }
 
+    /* Water body labels — italic, lowercase, low-contrast so they sit in the
+       water as quietly as possible while still being legible. */
+    .water-label {
+      fill: rgba(140, 200, 230, 0.55);
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+      paint-order: stroke;
+      stroke: rgba(0, 0, 0, 0.4);
+      stroke-width: 2px;
+    }
+
+    /* Compass + scale bar — bottom-left quiet UI. */
+    .map-chrome {
+      position: absolute;
+      bottom: 1.6rem;
+      right: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      pointer-events: none;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+    .compass {
+      width: 1.8rem;
+      height: 1.8rem;
+      border: 1px solid rgba(120, 220, 240, 0.32);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1px;
+      background: rgba(8, 12, 20, 0.55);
+    }
+    .compass .arrow { color: rgba(180, 240, 255, 0.85); font-size: 0.7rem; line-height: 1; }
+    .compass .n     { color: rgba(180, 240, 255, 0.65); font-size: 0.55rem; line-height: 1; letter-spacing: 0; }
+    .scalebar {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.18rem;
+      color: rgba(180, 220, 240, 0.65);
+      background: rgba(8, 12, 20, 0.55);
+      padding: 0.25rem 0.45rem;
+      border: 1px solid rgba(120, 220, 240, 0.18);
+      border-radius: 2px;
+    }
+    .scalebar .bar {
+      height: 4px;
+      background: linear-gradient(to right,
+        rgba(180, 240, 255, 0.7) 0%,
+        rgba(180, 240, 255, 0.7) 50%,
+        rgba(8, 12, 20, 0.7)     50%,
+        rgba(8, 12, 20, 0.7)     100%);
+      border: 1px solid rgba(180, 220, 240, 0.5);
+      box-sizing: content-box;
+    }
+    .scalebar .label { font-size: 0.55rem; letter-spacing: 0.12em; }
+
+    /* Search */
+    .search-wrap {
+      position: relative;
+    }
+    .search-input {
+      background: rgba(8, 12, 18, 0.78);
+      color: var(--text-primary);
+      border: 1px solid rgba(120, 220, 240, 0.20);
+      border-radius: 3px;
+      padding: 0.35rem 0.7rem;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      width: 16rem;
+      outline: none;
+    }
+    .search-input::placeholder { color: var(--text-whisper); }
+    .search-input:focus { border-color: rgba(120, 240, 255, 0.6); }
+    .search-results {
+      position: absolute;
+      top: 110%;
+      left: 0;
+      right: 0;
+      max-height: 18rem;
+      overflow-y: auto;
+      background: rgba(8, 12, 20, 0.96);
+      border: 1px solid rgba(120, 220, 240, 0.25);
+      border-radius: 3px;
+      z-index: 9;
+      display: none;
+    }
+    .search-results[data-open="1"] { display: block; }
+    .search-result {
+      display: flex;
+      gap: 0.5rem;
+      align-items: baseline;
+      padding: 0.4rem 0.7rem;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+    .search-result:hover, .search-result.focused {
+      background: rgba(120, 240, 255, 0.08);
+    }
+    .search-result .name { color: var(--text-primary); }
+    .search-result .borough { color: var(--text-whisper); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; margin-left: auto; }
+    .search-empty {
+      padding: 0.5rem 0.7rem;
+      color: var(--text-whisper);
+      font-size: 0.7rem;
+      font-style: italic;
+    }
+
+    /* "Don't know" / skip button — quieter than answer buttons */
+    .dontknow-btn {
+      background: transparent;
+      color: var(--text-whisper);
+      border: 1px dashed rgba(120, 220, 240, 0.22);
+      padding: 0.55rem 0.95rem;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      border-radius: 3px;
+      min-height: 44px;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .dontknow-btn { transition: border-color var(--speed), color var(--speed); }
+    }
+    .dontknow-btn:hover { color: var(--text-dim); border-color: rgba(120, 220, 240, 0.45); }
+
     /* ---------- header ---------- */
 
     header {
@@ -624,6 +763,10 @@
       <button class="ctrl-btn" data-length="25">25</button>
       <button class="ctrl-btn" data-length="0">∞</button>
     </div>
+    <div class="control-group search-wrap" id="search-group">
+      <input type="text" class="search-input" id="search-input" placeholder="search neighborhood..." autocomplete="off" spellcheck="false" aria-label="search neighborhoods" />
+      <div class="search-results" id="search-results" role="listbox" aria-label="search results"></div>
+    </div>
     <div class="score" id="score-readout"><span class="score-num" id="score-num">0</span> · <span id="score-meta">walk</span></div>
     <button class="replay-glyph" id="replay-glyph" title="re-open the wizard's invocation">∴</button>
   </header>
@@ -657,6 +800,7 @@
       <g id="atlas-regional"></g>
       <g id="atlas-land"></g>
       <g id="atlas-landmarks"></g>
+      <g id="atlas-water-labels"></g>
       <g id="atlas-boroughs"></g>
       <g id="atlas-features"></g>
       <g id="atlas-bridges"></g>
@@ -670,6 +814,16 @@
     </div>
     <div class="label-tip" id="label-tip"></div>
     <div class="footer-panel" id="footer-panel"></div>
+    <div class="map-chrome">
+      <div class="scalebar" id="scalebar">
+        <div class="bar" id="scalebar-bar" style="width: 60px;"></div>
+        <div class="label" id="scalebar-label">1 mile</div>
+      </div>
+      <div class="compass" aria-label="north arrow">
+        <span class="arrow">▲</span>
+        <span class="n">N</span>
+      </div>
+    </div>
     <div class="data-credit" id="data-credit">data: pediacities · curation: gregorovich</div>
   </main>
 
@@ -1000,6 +1154,7 @@ walk with me.</div>
         get bbox() { return bbox; },
         get viewport() { return viewport; },
         get zoom() { return zoom; },
+        get scale() { return scale; },
       };
     })();
 
@@ -1049,6 +1204,7 @@ walk with me.</div>
       const landGroup = document.getElementById("atlas-land");
       const landmarksGroup = document.getElementById("atlas-landmarks");
       const landmarkLabelsGroup = document.getElementById("atlas-landmark-labels");
+      const waterLabelsGroup = document.getElementById("atlas-water-labels");
       const boroughsGroup = document.getElementById("atlas-boroughs");
       const featuresGroup = document.getElementById("atlas-features");
       const bridgesGroup = document.getElementById("atlas-bridges");
@@ -1067,6 +1223,8 @@ walk with me.</div>
       const landmarkRefs = [];
       // bridges: array of {name, from:[lng,lat], to:[lng,lat], element: path-element}
       const bridgeRefs = [];
+      // water labels: array of {name, at:[lng,lat], text: text-element}
+      const waterRefs = [];
       let regionalPath = null;
 
       let featuresList = [];
@@ -1182,6 +1340,22 @@ walk with me.</div>
           }
         }
 
+        // Water-body labels (italic, in the water gaps)
+        while (waterLabelsGroup.firstChild) waterLabelsGroup.removeChild(waterLabelsGroup.firstChild);
+        waterRefs.length = 0;
+        if (OUTLINES?.water_labels) {
+          for (const w of OUTLINES.water_labels) {
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            const [px, py] = atlasGeo.project(w.at[0], w.at[1]);
+            text.setAttribute("x", px.toFixed(1));
+            text.setAttribute("y", py.toFixed(1));
+            text.setAttribute("class", "water-label");
+            text.textContent = w.name;
+            waterLabelsGroup.appendChild(text);
+            waterRefs.push({ ...w, text });
+          }
+        }
+
         // Borough labels (top layer, above features)
         while (labelGroup.firstChild) labelGroup.removeChild(labelGroup.firstChild);
         boroughLabels.clear();
@@ -1229,6 +1403,11 @@ walk with me.</div>
           const [x1, y1] = atlasGeo.project(b.from[0], b.from[1]);
           const [x2, y2] = atlasGeo.project(b.to[0], b.to[1]);
           b.element.setAttribute("d", `M${x1.toFixed(1)},${y1.toFixed(1)}L${x2.toFixed(1)},${y2.toFixed(1)}`);
+        }
+        for (const w of waterRefs) {
+          const [px, py] = atlasGeo.project(w.at[0], w.at[1]);
+          w.text.setAttribute("x", px.toFixed(1));
+          w.text.setAttribute("y", py.toFixed(1));
         }
         for (const [id, entry] of byId) {
           entry.element.setAttribute("d", atlasGeo.geometryToPath(entry.feature.geometry));
@@ -1354,6 +1533,7 @@ walk with me.</div>
       let current = null;            // current question feature
       let correct = 0;
       let asked = 0;
+      let skipped = 0;               // "don't know" responses
       let listener = null;
       let allFeatures = [];
       let endlessSecondPassWarned = false;
@@ -1384,6 +1564,7 @@ walk with me.</div>
         askedIds.clear();
         correct = 0;
         asked = 0;
+        skipped = 0;
         endlessSecondPassWarned = false;
         if (autoFire) return nextQuestion();
         return null;
@@ -1493,19 +1674,34 @@ walk with me.</div>
         // Round-end check: bounded mode terminates after the configured length.
         if (length > 0 && asked >= length) {
           current = null;
-          if (listener) listener({ type: "complete", correct, asked, accuracy: correct / Math.max(asked, 1) });
+          const denom = Math.max(asked - skipped, 1);
+          if (listener) listener({ type: "complete", correct, asked, skipped, accuracy: correct / denom });
         }
 
         return { correct: isCorrect, feature, mastery: masteryEvent };
       }
 
       function getCurrent() { return current; }
-      function getStats() { return { correct, asked, length, mode, boroughs: [...boroughs] }; }
+      function getStats() { return { correct, asked, skipped, length, mode, boroughs: [...boroughs] }; }
       function getPool() { return pool.map(f => f.properties.neighborhood); }
       function setListener(fn) { listener = fn; }
 
+      function dontKnow() {
+        // "I don't know" — reveal the answer and advance, no penalty in
+        // accuracy. Counts toward the round length but not toward correctness.
+        if (!current) return null;
+        const feature = current;
+        skipped++;
+        if (listener) listener({ type: "result", correct: false, skipped: true, feature, mastery: null });
+        if (length > 0 && asked >= length) {
+          current = null;
+          if (listener) listener({ type: "complete", correct, asked, skipped, accuracy: correct / Math.max(asked - skipped, 1) });
+        }
+        return { correct: false, skipped: true, feature, mastery: null };
+      }
+
       function reset() {
-        pool = []; askedIds.clear(); current = null; correct = 0; asked = 0;
+        pool = []; askedIds.clear(); current = null; correct = 0; asked = 0; skipped = 0;
         rand = Math.random;
       }
 
@@ -1529,7 +1725,7 @@ walk with me.</div>
 
       return {
         init, setSeed, setMode, setBoroughs, getBoroughs, setLength,
-        startRound, nextQuestion, submit,
+        startRound, nextQuestion, submit, dontKnow,
         getCurrent, getStats, getPool, setListener, reset,
         forceQuestion,
       };
@@ -1799,6 +1995,11 @@ walk with me.</div>
           btn.addEventListener("click", () => onSubmitA(choice, btn));
           elFooter.appendChild(btn);
         }
+        const dk = document.createElement("button");
+        dk.className = "dontknow-btn";
+        dk.textContent = "i don't know";
+        dk.addEventListener("click", () => onDontKnow());
+        elFooter.appendChild(dk);
       }
 
       function showModeBQuestion(q) {
@@ -1817,13 +2018,13 @@ walk with me.</div>
         submit.className = "choice-btn";
         submit.textContent = "submit";
         submit.addEventListener("click", () => onSubmitB(input.value, input));
-        const skip = document.createElement("button");
-        skip.className = "skip-btn";
-        skip.textContent = "skip";
-        skip.addEventListener("click", () => onSubmitB("__skip__", input));
+        const dk = document.createElement("button");
+        dk.className = "dontknow-btn";
+        dk.textContent = "i don't know";
+        dk.addEventListener("click", () => onDontKnow());
         elFooter.appendChild(input);
         elFooter.appendChild(submit);
-        elFooter.appendChild(skip);
+        elFooter.appendChild(dk);
         setTimeout(() => input.focus(), 30);
       }
 
@@ -1834,6 +2035,11 @@ walk with me.</div>
         name.className = "target-name";
         name.textContent = q.feature.properties.neighborhood;
         elFooter.appendChild(name);
+        const dk = document.createElement("button");
+        dk.className = "dontknow-btn";
+        dk.textContent = "i don't know";
+        dk.addEventListener("click", () => onDontKnow());
+        elFooter.appendChild(dk);
       }
 
       function onSubmitA(choice, btnEl) {
@@ -1856,9 +2062,7 @@ walk with me.</div>
       }
 
       function onSubmitB(input, inputEl) {
-        const skipped = input === "__skip__";
-        const value = skipped ? "" : input;
-        const result = atlasQuiz.submit(value);
+        const result = atlasQuiz.submit(input);
         const correctName = result.feature.properties.neighborhood;
         const correctId = result.feature.properties.id;
         if (result.correct) {
@@ -1873,6 +2077,17 @@ walk with me.</div>
           appendFeedback(`✗ — it was ${correctName}`, "wrong");
           scheduleAdvance(1700);
         }
+        renderScore();
+      }
+
+      function onDontKnow() {
+        const result = atlasQuiz.dontKnow();
+        if (!result) return;
+        const correctName = result.feature.properties.neighborhood;
+        const correctId = result.feature.properties.id;
+        atlasRender.setClass(correctId, "correct");
+        appendFeedback(`— it was ${correctName}`, "");
+        scheduleAdvance(1400);
         renderScore();
       }
 
@@ -1931,7 +2146,9 @@ walk with me.</div>
         const accuracy = payload.accuracy;
         const reflection = atlasVoice.reflection(accuracy);
         elReflectionLine.textContent = reflection;
-        elReflectionStats.innerHTML = `<span class="accuracy">${payload.correct} / ${payload.asked}</span> · ${Math.round(accuracy*100)}% accuracy`;
+        const skippedNote = payload.skipped > 0 ? ` · ${payload.skipped} skipped` : "";
+        const denom = Math.max(payload.asked - (payload.skipped || 0), 1);
+        elReflectionStats.innerHTML = `<span class="accuracy">${payload.correct} / ${denom}</span> · ${Math.round(accuracy*100)}% accuracy${skippedNote}`;
         elReflection.dataset.open = "1";
 
         // Update best-score
@@ -1975,11 +2192,33 @@ walk with me.</div>
         atlasGeo.setZoom(atlasGeo.zoom * factor, anchorX, anchorY);
         atlasRender.rebuildPathsOnly();
         atlasStorage.setView(atlasGeo.getView());
+        renderScalebar();
       }
       function resetView() {
         atlasGeo.reset();
         atlasRender.rebuildPaths();
         atlasStorage.setView(atlasGeo.getView());
+        renderScalebar();
+      }
+
+      // Scale bar — recompute pixel length of "1 mile" at the current zoom,
+      // pick the largest "nice" distance (1 / 2 / 5 / 10 mi) that fits in
+      // 100 px. NYC sits around 40.7N so 1 mile ≈ 0.0145° of latitude.
+      function renderScalebar() {
+        const elBar = document.getElementById("scalebar-bar");
+        const elLabel = document.getElementById("scalebar-label");
+        if (!elBar || !elLabel || !atlasGeo.scale) return;
+        const milesPerDegree = 1 / 0.0145;
+        const pixelsPerMile = atlasGeo.scale / milesPerDegree;
+        const candidates = [10, 5, 2, 1, 0.5, 0.25, 0.1];
+        let chosen = 1;
+        for (const m of candidates) {
+          if (m * pixelsPerMile <= 110) { chosen = m; break; }
+        }
+        const px = Math.round(chosen * pixelsPerMile);
+        elBar.style.width = `${Math.max(px, 14)}px`;
+        const label = chosen >= 1 ? `${chosen} mi` : `${chosen * 5280} ft`;
+        elLabel.textContent = label;
       }
       function bindZoomPan() {
         const svg = document.getElementById("atlas");
@@ -2017,6 +2256,116 @@ walk with me.</div>
             atlasStorage.setView(atlasGeo.getView());
           }
         });
+      }
+
+      // ----- search ---------------------------------------------------------
+      const elSearchInput = document.getElementById("search-input");
+      const elSearchResults = document.getElementById("search-results");
+      let searchFocused = -1;
+
+      function bindSearch() {
+        elSearchInput.addEventListener("input", () => renderSearchResults());
+        elSearchInput.addEventListener("focus", () => renderSearchResults());
+        elSearchInput.addEventListener("blur", () => {
+          // Defer so a click inside results lands first.
+          setTimeout(() => { elSearchResults.dataset.open = "0"; }, 150);
+        });
+        elSearchInput.addEventListener("keydown", (e) => {
+          const items = [...elSearchResults.querySelectorAll(".search-result")];
+          if (e.key === "ArrowDown") { e.preventDefault(); searchFocused = Math.min(searchFocused + 1, items.length - 1); _refreshFocusedItem(items); }
+          else if (e.key === "ArrowUp") { e.preventDefault(); searchFocused = Math.max(searchFocused - 1, 0); _refreshFocusedItem(items); }
+          else if (e.key === "Enter") {
+            e.preventDefault();
+            const target = items[searchFocused] || items[0];
+            if (target) target.click();
+          }
+          else if (e.key === "Escape") { elSearchInput.blur(); }
+        });
+      }
+
+      function _refreshFocusedItem(items) {
+        items.forEach((el, i) => el.classList.toggle("focused", i === searchFocused));
+        const focused = items[searchFocused];
+        if (focused) focused.scrollIntoView({ block: "nearest" });
+      }
+
+      function renderSearchResults() {
+        const q = atlasMatch.normalize(elSearchInput.value || "");
+        elSearchResults.innerHTML = "";
+        searchFocused = q ? 0 : -1;
+        if (!q) {
+          elSearchResults.dataset.open = "0";
+          return;
+        }
+        // Score every feature: prefix match > substring match > fuzzy distance.
+        const matches = [];
+        for (const f of features) {
+          const nameN = atlasMatch.normalize(f.properties.neighborhood);
+          let score = 0;
+          if (nameN === q) score = 1000;
+          else if (nameN.startsWith(q)) score = 500 - (nameN.length - q.length);
+          else if (nameN.includes(q)) score = 200 - (nameN.length - q.length);
+          else {
+            const d = atlasMatch.levenshtein(q, nameN);
+            if (d <= 3) score = 50 - d * 10;
+          }
+          if (score > 0) matches.push({ feature: f, score });
+        }
+        // Also check aliases
+        for (const [canonical, aliasList] of Object.entries(ALIASES)) {
+          for (const alias of aliasList) {
+            const aliasN = atlasMatch.normalize(alias);
+            if (aliasN === q || aliasN.startsWith(q) || aliasN.includes(q)) {
+              const f = features.find(ff => ff.properties.neighborhood === canonical);
+              if (f && !matches.some(m => m.feature === f)) matches.push({ feature: f, score: 300 });
+            }
+          }
+        }
+        matches.sort((a, b) => b.score - a.score);
+        const top = matches.slice(0, 8);
+        if (top.length === 0) {
+          elSearchResults.innerHTML = `<div class="search-empty">no match</div>`;
+          elSearchResults.dataset.open = "1";
+          return;
+        }
+        for (const { feature } of top) {
+          const row = document.createElement("div");
+          row.className = "search-result";
+          row.setAttribute("role", "option");
+          row.innerHTML = `<span class="name">${feature.properties.neighborhood}</span><span class="borough">${feature.properties.borough}</span>`;
+          row.addEventListener("click", () => goToFeature(feature));
+          elSearchResults.appendChild(row);
+        }
+        const items = [...elSearchResults.querySelectorAll(".search-result")];
+        _refreshFocusedItem(items);
+        elSearchResults.dataset.open = "1";
+      }
+
+      function goToFeature(feature) {
+        const [cx, cy] = feature.properties.centroid || [0, 0];
+        // Compute the centroid in screen coords at current zoom, then nudge
+        // pan so it lands at viewport center. Re-zoom to a moderate level
+        // so the polygon reads at a useful size.
+        const r = document.getElementById("atlas").getBoundingClientRect();
+        atlasGeo.reset();
+        // Bump zoom up to ~3x so the feature reads as the focal point.
+        atlasGeo.setZoom(3.5, r.width / 2, r.height / 2);
+        // Pan so feature centroid is at center.
+        const [px, py] = atlasGeo.project(cx, cy);
+        atlasGeo.panBy(r.width / 2 - px, r.height / 2 - py);
+        atlasRender.rebuildPathsOnly();
+        atlasStorage.setView(atlasGeo.getView());
+        renderScalebar();
+        // Briefly highlight the feature.
+        atlasRender.clearTransientClasses();
+        if (mode === "D") atlasRender.applyMasteryDecorations("D");
+        atlasRender.setClass(feature.properties.id, "target");
+        setTimeout(() => {
+          if (mode === "D") atlasRender.applyMasteryDecorations("D");
+        }, 2200);
+        elSearchInput.value = "";
+        elSearchResults.dataset.open = "0";
+        elSearchInput.blur();
       }
 
       function bindMap() {
@@ -2086,11 +2435,13 @@ walk with me.</div>
 
         bindControls();
         bindMap();
+        bindSearch();
         setActiveSingle(elModeBtns, "D");
         setActiveSingle(elLengthBtns, "10");
         renderQuizSummary();
         atlasRender.applyMasteryDecorations("D");
         applyHiddenDecorations();
+        renderScalebar();
 
         atlasQuiz.setListener((evt) => {
           if (evt.type === "question") {
