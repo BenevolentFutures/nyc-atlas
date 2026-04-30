@@ -2053,10 +2053,20 @@ walk with me.</div>
           if (result.mastery && result.mastery.wasFirstMastery) maybeMasteryLine(correctName);
           scheduleAdvance(700);
         } else {
+          // Highlight BOTH polygons: the one the player guessed (red) and
+          // the actual answer (green). Surface the matching button states too.
+          const guessFeature = features.find(f => f.properties.neighborhood === choice);
+          if (guessFeature && guessFeature.properties.id !== correctId) {
+            atlasRender.setClass(guessFeature.properties.id, "wrong");
+          }
           atlasRender.setClass(correctId, "correct");
           btnEl.classList.add("wrong");
+          // Mark the correct button green so the player sees the pairing.
+          for (const b of elFooter.querySelectorAll(".choice-btn")) {
+            if (b.textContent === correctName) b.classList.add("correct");
+          }
           appendFeedback(`✗ — it was ${correctName}`, "wrong");
-          scheduleAdvance(1500);
+          scheduleAdvance(1800);
         }
         renderScore();
       }
@@ -2072,12 +2082,46 @@ walk with me.</div>
           if (result.mastery && result.mastery.wasFirstMastery) maybeMasteryLine(correctName);
           scheduleAdvance(700);
         } else {
+          // If the player's input resolves to a known different neighborhood,
+          // light its polygon red so they see what they were thinking of.
+          const guessed = _resolveInputToFeature(input);
+          if (guessed && guessed.properties.id !== correctId) {
+            atlasRender.setClass(guessed.properties.id, "wrong");
+          }
           atlasRender.setClass(correctId, "correct");
           inputEl.classList.add("wrong", "shake");
-          appendFeedback(`✗ — it was ${correctName}`, "wrong");
-          scheduleAdvance(1700);
+          const guessNote = guessed && guessed.properties.id !== correctId
+            ? ` — you guessed ${guessed.properties.neighborhood}`
+            : "";
+          appendFeedback(`✗ — it was ${correctName}${guessNote}`, "wrong");
+          scheduleAdvance(1900);
         }
         renderScore();
+      }
+
+      function _resolveInputToFeature(input) {
+        if (!input) return null;
+        const norm = atlasMatch.normalize(input);
+        if (!norm) return null;
+        // Direct canonical match
+        for (const f of features) {
+          if (atlasMatch.normalize(f.properties.neighborhood) === norm) return f;
+        }
+        // Alias match
+        for (const [canonical, aliases] of Object.entries(ALIASES)) {
+          for (const a of aliases) {
+            if (atlasMatch.normalize(a) === norm) {
+              return features.find(f => f.properties.neighborhood === canonical) || null;
+            }
+          }
+        }
+        // Fuzzy: closest by Levenshtein, only if uniquely close (distance <= 2)
+        let best = null, bestDist = 99;
+        for (const f of features) {
+          const d = atlasMatch.levenshtein(norm, atlasMatch.normalize(f.properties.neighborhood));
+          if (d < bestDist) { bestDist = d; best = f; }
+        }
+        return bestDist <= 2 ? best : null;
       }
 
       function onDontKnow() {
