@@ -144,15 +144,23 @@
       stroke: rgba(170, 180, 200, 0.40);
     }
 
-    /* Bridges — thin amber lines that read as "spanning water." Sit above the
-       polygons but below the labels so they don't get covered by the wizard text. */
+    /* Bridges — quiet ghost-gold lines that read as "infrastructure spanning
+       water." Thin and unsaturated so they sit between the polygons without
+       fighting the cyan glows. Hover brightens + thickens. */
     .bridge {
-      stroke: rgba(230, 190, 110, 0.70);
-      stroke-width: 1.3;
+      stroke: rgba(195, 175, 130, 0.55);
+      stroke-width: 0.9;
       stroke-linecap: round;
       fill: none;
-      pointer-events: none;
-      filter: url(#glow-soft);
+      pointer-events: stroke;
+      cursor: help;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .bridge { transition: stroke var(--speed), stroke-width var(--speed); }
+    }
+    .bridge:hover {
+      stroke: rgba(255, 220, 160, 0.92);
+      stroke-width: 1.6;
     }
 
     /* Water body labels — italic, lowercase, low-contrast so they sit in the
@@ -1324,20 +1332,35 @@ walk with me.</div>
           byId.set(feat.properties.id, { feature: feat, element: path });
         }
 
-        // Bridges — thin amber lines spanning waterways
+        // Bridges — thin ghost-gold lines spanning waterways. Multi-point
+        // path lets the Queensboro / RFK render as bent lines through their
+        // island midpoints (Roosevelt Island, Randall's Island).
         while (bridgesGroup.firstChild) bridgesGroup.removeChild(bridgesGroup.firstChild);
         bridgeRefs.length = 0;
         if (OUTLINES?.bridges) {
           for (const b of OUTLINES.bridges) {
+            const points = b.path || (b.from && b.to ? [b.from, b.to] : null);
+            if (!points || points.length < 2) continue;
             const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            const [x1, y1] = atlasGeo.project(b.from[0], b.from[1]);
-            const [x2, y2] = atlasGeo.project(b.to[0], b.to[1]);
-            line.setAttribute("d", `M${x1.toFixed(1)},${y1.toFixed(1)}L${x2.toFixed(1)},${y2.toFixed(1)}`);
+            line.setAttribute("d", _bridgePath(points));
             line.setAttribute("class", "bridge");
             line.setAttribute("data-name", b.name);
+            // Hover tooltip — same label-tip as neighborhoods, just no borough.
+            line.addEventListener("mouseenter", (e) => atlasRender.showLabel(b.name, "bridge", e));
+            line.addEventListener("mousemove",  (e) => atlasRender.showLabel(b.name, "bridge", e));
+            line.addEventListener("mouseleave", () => atlasRender.hideLabel());
             bridgesGroup.appendChild(line);
-            bridgeRefs.push({ ...b, element: line });
+            bridgeRefs.push({ ...b, points, element: line });
           }
+        }
+
+        function _bridgePath(points) {
+          let d = "";
+          for (let i = 0; i < points.length; i++) {
+            const [px, py] = atlasGeo.project(points[i][0], points[i][1]);
+            d += (i === 0 ? "M" : "L") + px.toFixed(1) + "," + py.toFixed(1);
+          }
+          return d;
         }
 
         // Water-body labels (italic, in the water gaps)
@@ -1400,9 +1423,12 @@ walk with me.</div>
           lm.text.setAttribute("y", py.toFixed(1));
         }
         for (const b of bridgeRefs) {
-          const [x1, y1] = atlasGeo.project(b.from[0], b.from[1]);
-          const [x2, y2] = atlasGeo.project(b.to[0], b.to[1]);
-          b.element.setAttribute("d", `M${x1.toFixed(1)},${y1.toFixed(1)}L${x2.toFixed(1)},${y2.toFixed(1)}`);
+          let d = "";
+          for (let i = 0; i < b.points.length; i++) {
+            const [px, py] = atlasGeo.project(b.points[i][0], b.points[i][1]);
+            d += (i === 0 ? "M" : "L") + px.toFixed(1) + "," + py.toFixed(1);
+          }
+          b.element.setAttribute("d", d);
         }
         for (const w of waterRefs) {
           const [px, py] = atlasGeo.project(w.at[0], w.at[1]);
