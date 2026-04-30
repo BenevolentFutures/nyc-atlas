@@ -1832,6 +1832,11 @@ walk with me.</div>
       let advanceTimer = null;
       let hiddenIds = new Set();      // user-hidden neighborhoods (Mode D click)
       let pendingBoroughs = null;     // staged choices in quiz modal
+      // Drag-vs-click discrimination: mousedown anywhere starts tracking;
+      // if the cursor moves more than DRAG_THRESHOLD pixels before mouseup
+      // we treat it as a pan and suppress the click on whatever polygon
+      // mouseup landed on. Clicks under the threshold pass through normally.
+      let suppressNextClick = false;
 
       function setActiveSingle(group, value) {
         group.forEach(b => b.classList.toggle(
@@ -2341,8 +2346,11 @@ walk with me.</div>
       }
       function bindZoomPan() {
         const svg = document.getElementById("atlas");
-        let panActive = false;
+        const DRAG_THRESHOLD = 4;        // px before mousedown promotes to pan
+        let dragStart = null;             // {x, y} or null when not tracking
+        let panActive = false;            // true once threshold crossed
         let lastX = 0, lastY = 0;
+
         svg.addEventListener("wheel", (e) => {
           e.preventDefault();
           const r = svg.getBoundingClientRect();
@@ -2351,16 +2359,29 @@ walk with me.</div>
           const factor = Math.exp(-e.deltaY * 0.0015);
           zoomBy(factor, ax, ay);
         }, { passive: false });
+
         svg.addEventListener("mousedown", (e) => {
-          // Skip pan if click started on a polygon — let click handlers fire.
-          if (e.target.classList && e.target.classList.contains("nh")) return;
-          panActive = true;
+          // Track every mousedown, including those on polygons. Whether this
+          // becomes a pan or a click is decided by movement on mousemove.
+          dragStart = { x: e.clientX, y: e.clientY };
           lastX = e.clientX;
           lastY = e.clientY;
-          svg.style.cursor = "grabbing";
+          panActive = false;
         });
+
         window.addEventListener("mousemove", (e) => {
-          if (!panActive) return;
+          if (!dragStart) return;
+          if (!panActive) {
+            const dx = Math.abs(e.clientX - dragStart.x);
+            const dy = Math.abs(e.clientY - dragStart.y);
+            if (dx <= DRAG_THRESHOLD && dy <= DRAG_THRESHOLD) return;
+            // Promote to pan
+            panActive = true;
+            svg.style.cursor = "grabbing";
+            // Mousedown may have started on a polygon — text selection and
+            // hover labels can interfere with the pan. Hide the label tip.
+            atlasRender.hideLabel();
+          }
           const dx = e.clientX - lastX;
           const dy = e.clientY - lastY;
           lastX = e.clientX;
@@ -2368,12 +2389,19 @@ walk with me.</div>
           atlasGeo.panBy(dx, dy);
           atlasRender.rebuildPathsOnly();
         });
+
         window.addEventListener("mouseup", () => {
           if (panActive) {
             panActive = false;
             svg.style.cursor = "";
             atlasStorage.setView(atlasGeo.getView());
+            renderScalebar();
+            // Suppress the click event that's about to fire on the polygon
+            // mouseup landed on — the user dragged, didn't click.
+            suppressNextClick = true;
+            setTimeout(() => { suppressNextClick = false; }, 50);
           }
+          dragStart = null;
         });
       }
 
@@ -2506,6 +2534,10 @@ walk with me.</div>
         });
 
         atlasRender.bindClick((entry, e) => {
+          // If the mousedown→mouseup was actually a drag, swallow the click —
+          // the user was panning, not clicking the polygon they happened to
+          // release on.
+          if (suppressNextClick) return;
           if (mode === "D") {
             // Pure exploration: click reveals a flavor card with name +
             // borough + mastery state. No mutation of map state — that's
